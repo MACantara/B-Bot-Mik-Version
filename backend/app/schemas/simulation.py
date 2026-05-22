@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Literal
+from uuid import UUID
 
 
 class CellState(BaseModel):
@@ -28,8 +29,8 @@ class SaveStateCreate(BaseModel):
 
 
 class SaveStateResponse(BaseModel):
-    id: int
-    user_id: int
+    id: UUID
+    user_id: UUID
     grid_json: List[List[CellState]]
     wood_count: int
     stone_count: int

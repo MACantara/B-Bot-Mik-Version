@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from uuid import UUID
 
 
 class UserBase(BaseModel):
@@ -16,7 +17,7 @@ class UserLogin(BaseModel):
 
 
 class User(UserBase):
-    id: int
+    id: UUID
 
     class Config:
         from_attributes = True
@@ -30,3 +31,4 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+    user_id: Optional[str] = None
