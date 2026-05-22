@@ -35,7 +35,7 @@ ALTER TABLE save_states ENABLE ROW LEVEL SECURITY;
 -- Allow anyone to insert new users (for registration)
 CREATE POLICY "Allow public registration" ON users
     FOR INSERT
-    TO anon
+    TO anon, authenticated
     WITH CHECK (true);
 
 -- Allow authenticated users to read their own user data
@@ -43,6 +43,13 @@ CREATE POLICY "Users can read own data" ON users
     FOR SELECT
     TO authenticated
     USING (auth.uid()::text = id::text);
+
+-- Allow authenticated users to update their own user data
+CREATE POLICY "Users can update own data" ON users
+    FOR UPDATE
+    TO authenticated
+    USING (auth.uid()::text = id::text)
+    WITH CHECK (auth.uid()::text = id::text);
 
 -- RLS Policies for save_states table
 -- Allow authenticated users to insert their own save states
