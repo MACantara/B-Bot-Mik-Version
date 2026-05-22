@@ -27,7 +27,7 @@ export function initThreeJS(containerId, width, height) {
     );
     
     // Set initial camera position
-    camera.position.set(15, 20, 15);
+    camera.position.set(20, 25, 20);
     camera.lookAt(0, 0, 0);
     
     // Create renderer
@@ -41,8 +41,8 @@ export function initThreeJS(containerId, width, height) {
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.minDistance = 5;
-    controls.maxDistance = 50;
+    controls.minDistance = 10;
+    controls.maxDistance = 60;
     controls.maxPolarAngle = Math.PI / 2.2; // Prevent going below ground
     
     // Add lighting

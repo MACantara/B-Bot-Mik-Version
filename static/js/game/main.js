@@ -20,7 +20,7 @@ bot.build("residential")`;
 
 // Grid configuration
 const GRID_SIZE = 20;
-const CELL_SIZE = 30;
+const CELL_SIZE = 1.5;
 const GRID_WIDTH = GRID_SIZE * CELL_SIZE;
 const GRID_HEIGHT = GRID_SIZE * CELL_SIZE;
 
