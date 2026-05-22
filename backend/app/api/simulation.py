@@ -64,9 +64,12 @@ def save_simulation_state(
     # Check if user already has a save state
     response = supabase.table("save_states").select("*").eq("user_id", user_id).execute()
     
+    # Convert grid to JSON-serializable format
+    grid_json = [[cell.model_dump() for cell in row] for row in save_data.grid_json]
+    
     save_state_data = {
         "user_id": user_id,
-        "grid_json": save_data.grid_json,
+        "grid_json": grid_json,
         "wood_count": save_data.wood_count,
         "stone_count": save_data.stone_count,
         "population_count": save_data.population_count
