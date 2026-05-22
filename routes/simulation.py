@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from core.database import supabase
 from core.security import decode_token
-from core.script_interpreter import ScriptInterpreter, ScriptValidationError, simulate_execution
+from core.interpreter import ScriptInterpreter, ScriptValidationError, simulate_execution
 from functools import wraps
 
 simulation_bp = Blueprint('simulation', __name__)
