@@ -209,7 +209,11 @@ def simulate_execution(
     """
     grid = [row[:] for row in initial_grid]  # Deep copy
     bot = initial_bot.copy()
-    bot['inventory'] = initial_bot['inventory'].copy()
+    # Ensure bot has all required keys
+    bot['x'] = bot.get('x', 0)
+    bot['y'] = bot.get('y', 0)
+    bot['direction'] = bot.get('direction', 'RIGHT')
+    bot['inventory'] = initial_bot.get('inventory', {'wood': 0, 'stone': 0, 'metal': 0, 'energy': 0}).copy()
     resources = initial_resources.copy()
     population = 0
     

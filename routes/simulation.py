@@ -115,7 +115,10 @@ def execute_script():
     data = request.get_json()
     script = data.get('script', '')
     initial_grid = data.get('grid', [])
-    initial_bot = data.get('bot', {'x': 0, 'y': 0, 'direction': 'RIGHT', 'inventory': {'wood': 0, 'stone': 0, 'metal': 0, 'energy': 0}})
+    initial_bot = data.get('bot', {'x': 0, 'y': 0, 'direction': 'RIGHT'})
+    # Ensure bot has inventory
+    if 'inventory' not in initial_bot:
+        initial_bot['inventory'] = {'wood': 0, 'stone': 0, 'metal': 0, 'energy': 0}
     initial_resources = data.get('resources', {'wood': 0, 'stone': 0, 'metal': 0, 'energy': 0})
     
     if not script:
