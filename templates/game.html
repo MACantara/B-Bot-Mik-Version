@@ -1,17 +1,13 @@
 {% extends "base.html" %}
 
-{% block head %}
-<!-- Lucide Icons CDN -->
-<script src="https://unpkg.com/lucide@0.435.0/dist/umd/lucide.min.js" onload="window.lucideLoaded = true;"></script>
-{% endblock %}
-
 {% block content %}
+<script src="https://unpkg.com/lucide@latest"></script>
 <div class="h-screen flex flex-col bg-gray-100">
     <div class="bg-gray-800 text-white p-4">
         <div class="flex justify-between items-center">
             <h1 class="text-xl font-bold">B-Bot</h1>
             <div class="flex gap-4 text-sm items-center">
-                <span class="flex items-center gap-1"><i data-lucide="tree" class="w-4 h-4"></i> Wood: <span id="woodCount">0</span></span>
+                <span class="flex items-center gap-1"><i data-lucide="tree-pine" class="w-4 h-4"></i> Wood: <span id="woodCount">0</span></span>
                 <span class="flex items-center gap-1"><i data-lucide="mountain" class="w-4 h-4"></i> Stone: <span id="stoneCount">0</span></span>
                 <span class="flex items-center gap-1"><i data-lucide="cog" class="w-4 h-4"></i> Metal: <span id="metalCount">0</span></span>
                 <span class="flex items-center gap-1"><i data-lucide="zap" class="w-4 h-4"></i> Energy: <span id="energyCount">0</span></span>
@@ -95,28 +91,28 @@ const TILE_COLORS = {
     INDUSTRIAL: 0xB22222
 };
 
-// Note: PixiJS grid icons use emoji characters for simplicity.
-// Converting Lucide SVG icons to PIXI.Graphics requires complex SVG path parsing.
+// SVG icon strings for PixiJS rendering (simplified for canvas compatibility)
+const ICON_SVGS = {
+    TREE: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 22 4-10a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2l4 10"/><path d="M12 2v20"/><path d="M12 2a7 7 0 0 1 7 7c0 5-2 8-7 12-5-4-7-7-7-12a7 7 0 0 1 7-7z"/></svg>`,
+    ROCK: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg>`,
+    RESIDENTIAL: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+    COMMERCIAL: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>`,
+    INDUSTRIAL: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/></svg>`,
+    BOT: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M8.5 2h7"/><path d="M12 2v6"/><path d="M19 10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"/><path d="M8 10v4"/><path d="M16 10v4"/><path d="M12 14v4"/></svg>`
+};
 
 // Initialize PixiJS Application
 async function initPixiJS() {
     const container = document.getElementById('pixiContainer');
     
-    // Create canvas element explicitly for PixiJS v8
-    const canvas = document.createElement('canvas');
-    canvas.width = GRID_WIDTH;
-    canvas.height = GRID_HEIGHT;
-    container.appendChild(canvas);
-    
     app = new PIXI.Application({
-        view: canvas,
         width: GRID_WIDTH,
         height: GRID_HEIGHT,
         backgroundColor: 0xffffff,
-        antialias: true,
-        autoDensity: true,
-        resolution: window.devicePixelRatio || 1
+        antialias: true
     });
+    
+    container.appendChild(app.view);
     
     // Create main grid container (camera)
     gridContainer = new PIXI.Container();
@@ -152,32 +148,17 @@ function renderGrid() {
             
             gridContainer.addChild(graphics);
             
-            // Add simple icons for different tile types
-            if (cellData.type === 'TREE') {
-                const treeIcon = new PIXI.Text('🌲', { fontSize: 16 });
-                treeIcon.x = x * CELL_SIZE + 5;
-                treeIcon.y = y * CELL_SIZE + 5;
-                gridContainer.addChild(treeIcon);
-            } else if (cellData.type === 'ROCK') {
-                const rockIcon = new PIXI.Text('🪨', { fontSize: 16 });
-                rockIcon.x = x * CELL_SIZE + 5;
-                rockIcon.y = y * CELL_SIZE + 5;
-                gridContainer.addChild(rockIcon);
-            } else if (cellData.type === 'RESIDENTIAL') {
-                const houseIcon = new PIXI.Text('🏠', { fontSize: 16 });
-                houseIcon.x = x * CELL_SIZE + 5;
-                houseIcon.y = y * CELL_SIZE + 5;
-                gridContainer.addChild(houseIcon);
-            } else if (cellData.type === 'COMMERCIAL') {
-                const buildingIcon = new PIXI.Text('🏢', { fontSize: 16 });
-                buildingIcon.x = x * CELL_SIZE + 5;
-                buildingIcon.y = y * CELL_SIZE + 5;
-                gridContainer.addChild(buildingIcon);
-            } else if (cellData.type === 'INDUSTRIAL') {
-                const factoryIcon = new PIXI.Text('🏭', { fontSize: 16 });
-                factoryIcon.x = x * CELL_SIZE + 5;
-                factoryIcon.y = y * CELL_SIZE + 5;
-                gridContainer.addChild(factoryIcon);
+            // Add SVG icons for different tile types
+            if (ICON_SVGS[cellData.type]) {
+                const svgString = ICON_SVGS[cellData.type];
+                const svgTexture = PIXI.Texture.from(svgString);
+                const iconSprite = new PIXI.Sprite(svgTexture);
+                iconSprite.x = x * CELL_SIZE + 7;
+                iconSprite.y = y * CELL_SIZE + 7;
+                iconSprite.width = 16;
+                iconSprite.height = 16;
+                iconSprite.tint = 0x333333; // Dark gray for better visibility
+                gridContainer.addChild(iconSprite);
             }
         }
     }
@@ -185,9 +166,14 @@ function renderGrid() {
 
 // Create bot sprite
 function createBotSprite() {
-    botSprite = new PIXI.Text('🤖', { fontSize: 20 });
+    const svgString = ICON_SVGS.BOT;
+    const svgTexture = PIXI.Texture.from(svgString);
+    botSprite = new PIXI.Sprite(svgTexture);
     botSprite.x = bot.x * CELL_SIZE + 5;
     botSprite.y = bot.y * CELL_SIZE + 5;
+    botSprite.width = 20;
+    botSprite.height = 20;
+    botSprite.tint = 0x000000; // Black for bot
     gridContainer.addChild(botSprite);
 }
 
@@ -374,12 +360,10 @@ async function processCommandQueue(commands) {
     }
 }
 
-// Initialize on window load to ensure all scripts are loaded
-window.addEventListener('load', async () => {
-    // Initialize Lucide icons - UMD build exposes lucide global
-    if (window.lucide && window.lucide.createIcons) {
-        window.lucide.createIcons();
-    }
+// Initialize on DOM load
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize Lucide icons
+    lucide.createIcons();
     
     const token = localStorage.getItem('access_token');
     if (!token) {
