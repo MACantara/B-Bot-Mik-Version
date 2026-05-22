@@ -137,9 +137,91 @@ class ScriptInterpreter:
         Args:
             tree: The validated AST node
         """
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
-                self._process_function_call(node.value)
+        # Process the module body recursively
+        for node in tree.body:
+            self._process_node(node, {})
+    
+    def _process_node(self, node: ast.AST, scope: Dict[str, Any]) -> None:
+        """
+        Recursively process AST nodes, handling control structures.
+        
+        Args:
+            node: The AST node to process
+            scope: Current variable scope dictionary
+        """
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+            self._process_function_call(node.value)
+        
+        elif isinstance(node, ast.For):
+            self._process_for_loop(node, scope)
+        
+        elif isinstance(node, ast.While):
+            raise ScriptValidationError("While loops are not currently supported. Use for loops with range() instead.")
+        
+        elif isinstance(node, ast.If):
+            raise ScriptValidationError("If statements are not currently supported.")
+        
+        elif isinstance(node, ast.Assign):
+            self._process_assignment(node, scope)
+    
+    def _process_for_loop(self, for_node: ast.For, scope: Dict[str, Any]) -> None:
+        """
+        Process a for loop and unroll it if it uses range() with constant value.
+        
+        Args:
+            for_node: The AST For node
+            scope: Current variable scope dictionary
+        """
+        # Check if it's a range() loop
+        if not isinstance(for_node.iter, ast.Call) or not isinstance(for_node.iter.func, ast.Name):
+            raise ScriptValidationError("For loops only support range() with constant integer values")
+        
+        if for_node.iter.func.id != 'range':
+            raise ScriptValidationError("For loops only support range() with constant integer values")
+        
+        # Get the range limit
+        if len(for_node.iter.args) == 0:
+            raise ScriptValidationError("range() requires at least one argument")
+        
+        limit_arg = for_node.iter.args[0]
+        if not isinstance(limit_arg, ast.Constant):
+            raise ScriptValidationError("Range limit must be a constant integer")
+        
+        limit = limit_arg.value
+        if not isinstance(limit, int) or limit < 0:
+            raise ScriptValidationError("Range limit must be a positive integer")
+        
+        if limit > self.MAX_ITERATIONS:
+            raise ScriptValidationError(f"Loop limit {limit} exceeds maximum of {self.MAX_ITERATIONS}")
+        
+        # Unroll the loop
+        loop_var = for_node.target.id if isinstance(for_node.target, ast.Name) else None
+        new_scope = scope.copy()
+        
+        for i in range(limit):
+            if loop_var:
+                new_scope[loop_var] = i
+            
+            # Process each statement in the loop body
+            for body_node in for_node.body:
+                self._process_node(body_node, new_scope)
+    
+    def _process_assignment(self, assign_node: ast.Assign, scope: Dict[str, Any]) -> None:
+        """
+        Process variable assignment.
+        
+        Args:
+            assign_node: The AST Assign node
+            scope: Current variable scope dictionary
+        """
+        if isinstance(assign_node.targets[0], ast.Name):
+            var_name = assign_node.targets[0].id
+            
+            # Only support constant integer assignments for now
+            if isinstance(assign_node.value, ast.Constant) and isinstance(assign_node.value.value, int):
+                scope[var_name] = assign_node.value.value
+            else:
+                raise ScriptValidationError("Only constant integer assignments are supported")
     
     def _process_function_call(self, call_node: ast.Call) -> None:
         """
