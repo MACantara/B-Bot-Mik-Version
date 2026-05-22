@@ -27,55 +27,10 @@ CREATE TABLE IF NOT EXISTS save_states (
 -- Create index on user_id for faster queries
 CREATE INDEX IF NOT EXISTS idx_save_states_user_id ON save_states(user_id);
 
--- Enable Row Level Security
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE save_states ENABLE ROW LEVEL SECURITY;
-
--- RLS Policies for users table
--- Allow anyone to insert new users (for registration)
-CREATE POLICY "Allow public registration" ON users
-    FOR INSERT
-    TO anon, authenticated
-    WITH CHECK (true);
-
--- Allow authenticated users to read their own user data
-CREATE POLICY "Users can read own data" ON users
-    FOR SELECT
-    TO authenticated
-    USING (auth.uid()::text = id::text);
-
--- Allow authenticated users to update their own user data
-CREATE POLICY "Users can update own data" ON users
-    FOR UPDATE
-    TO authenticated
-    USING (auth.uid()::text = id::text)
-    WITH CHECK (auth.uid()::text = id::text);
-
--- RLS Policies for save_states table
--- Allow authenticated users to insert their own save states
-CREATE POLICY "Users can insert own save states" ON save_states
-    FOR INSERT
-    TO authenticated
-    WITH CHECK (auth.uid()::text = user_id::text);
-
--- Allow authenticated users to read their own save states
-CREATE POLICY "Users can read own save states" ON save_states
-    FOR SELECT
-    TO authenticated
-    USING (auth.uid()::text = user_id::text);
-
--- Allow authenticated users to update their own save states
-CREATE POLICY "Users can update own save states" ON save_states
-    FOR UPDATE
-    TO authenticated
-    USING (auth.uid()::text = user_id::text)
-    WITH CHECK (auth.uid()::text = user_id::text);
-
--- Allow authenticated users to delete their own save states
-CREATE POLICY "Users can delete own save states" ON save_states
-    FOR DELETE
-    TO authenticated
-    USING (auth.uid()::text = user_id::text);
+-- Row Level Security
+-- Note: RLS is disabled for both tables since we use custom JWT authentication
+-- Security is handled by our backend authentication system
+-- Supabase RLS is designed for Supabase Auth, not custom JWT
 
 -- Function to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
