@@ -1,45 +1,82 @@
 # B-Bot: Command-Based City-Building Simulation
 
-A command-based city-building simulation game where you control a robot (B-Bot) using Python-like scripts to harvest resources and build structures.
+A command-based city-building simulation game where you control a robot (B-Bot) using Python scripts to harvest resources and build structures.
 
 ## Tech Stack
 
-### Backend & Frontend (Flask + Jinja2)
+### Backend
 - Flask (Python 3.10+)
-- Jinja2 templates (server-side rendering)
-- Tailwind CSS (via CDN)
+- RestrictedPython (secure script execution)
 - Supabase Python Client
 - PostgreSQL (via Supabase)
 - JWT authentication with refresh tokens
 - Flask-CORS
 
+### Frontend
+- Jinja2 templates (server-side rendering)
+- Three.js (3D grid visualization)
+- Tailwind CSS (via CDN)
+- Custom JavaScript for game logic
+
 ## Project Structure
 
 ```
 B-Bot/
-├── backend/                  # Flask + Python
-│   ├── app/
-│   │   ├── routes/          # Flask blueprints (auth, simulation)
-│   │   ├── core/            # Security, database
-│   │   └── templates/       # Jinja2 templates
-│   ├── wsgi.py              # WSGI entry point
-│   ├── vercel.json          # Vercel deployment config
-│   └── .env.example         # Environment variables template
+├── core/                     # Core application logic
+│   ├── interpreter/          # RestrictedPython script interpreter
+│   │   ├── script_interpreter.py
+│   │   ├── simulator.py
+│   │   ├── bot_command.py
+│   │   ├── safe_globals.py
+│   │   └── exceptions.py
+│   ├── config.py             # Configuration
+│   ├── database.py           # Supabase database
+│   └── security.py           # JWT authentication
+├── routes/                   # Flask blueprints
+│   ├── auth.py               # Authentication endpoints
+│   └── simulation.py        # Game simulation endpoints
+├── templates/                # Jinja2 templates
+│   ├── base.html
+│   ├── login.html
+│   ├── register.html
+│   └── game.html
+├── static/                   # Static assets
+│   ├── js/game/              # Game JavaScript
+│   └── css/                  # Stylesheets
+├── tests/                    # Test suite
+│   ├── test_website.py
+│   ├── test_interpreter_functionality.py
+│   ├── test_interpreter_security.py
+│   └── test_dsl.py
+├── docs/                     # Documentation
+├── wsgi.py                   # WSGI entry point
+├── requirements.txt          # Python dependencies
+├── vercel.json               # Vercel deployment config
+├── .env.example              # Environment variables template
 └── README.md
 ```
 
 ## Features
 
 ### Game Mechanics
-- **10x10 Grid Map**: Visual city map with trees, rocks, empty plots, and houses
-- **Four Command Primitives**:
-  - `bbot.move()` - Move robot forward in current direction
-  - `bbot.turn()` - Rotate 90 degrees clockwise
-  - `bbot.harvest()` - Gather resources (wood from trees, stone from rocks)
-  - `bbot.build()` - Build house (costs 2 wood + 1 stone)
-- **Resource Tracking**: Wood, Stone, Population, Energy
-- **Real-time Animation**: 300ms delay between commands for visual feedback
-- **Execution Limit**: Maximum 500 steps to prevent infinite loops
+- **20x20 Grid Map**: Visual city map with trees, rocks, empty plots, and buildings
+- **Five Command Primitives**:
+  - `bot.move()` - Move robot forward in current direction
+  - `bot.turn_left()` - Rotate 90 degrees counter-clockwise
+  - `bot.turn_right()` - Rotate 90 degrees clockwise
+  - `bot.harvest()` - Gather resources (wood from trees, stone from rocks)
+  - `bot.build(type)` - Build structure (costs 2 wood + 1 stone)
+- **Resource Tracking**: Wood, Stone, Metal, Energy
+- **Real-time Animation**: Visual command execution with step-by-step feedback
+- **Timeout Protection**: 5-second execution limit to prevent infinite loops
+
+### Scripting
+- **Full Python Support**: Write real Python scripts using RestrictedPython
+- **Variables & Arithmetic**: Use variables and mathematical operations
+- **Control Flow**: for loops, while loops, if statements
+- **Functions**: Define and call custom functions
+- **Data Structures**: Lists, dictionaries, tuples
+- **Secure Execution**: Sandboxed environment with RestrictedPython
 
 ### Authentication
 - JWT-based authentication with access and refresh tokens
@@ -53,19 +90,27 @@ B-Bot/
 - Track resource counts and population
 - User-specific save states
 
-## Setup Instructions
+## Documentation
+
+For detailed documentation, see the [docs/](docs/) folder:
+- [User Guide](docs/user-guide.md) - How to play the game
+- [Architecture](docs/architecture.md) - System design and data flow
+- [API Reference](docs/api.md) - Complete API documentation
+- [Scripting Guide](docs/scripting-guide.md) - Python scripting reference
+- [Security](docs/security.md) - Security model and sandbox details
+- [Deployment](docs/deployment.md) - Setup and deployment instructions
+- [Testing](docs/testing.md) - Test structure and running tests
+- [Contributing](docs/contributing.md) - Development guidelines
+
+## Quick Start
 
 ### Prerequisites
 - Python 3.10+
 - Supabase account (for PostgreSQL database)
 
-### Backend Setup
+### Installation
 
-1. Navigate to backend directory:
-```bash
-cd backend
-```
-
+1. Clone the repository
 2. Create virtual environment:
 ```bash
 python -m venv venv
@@ -94,24 +139,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
 ```
 
-To get your Supabase credentials:
-1. Go to your Supabase project dashboard
-2. Navigate to Settings → API
-3. Copy the Project URL
-4. Copy the **anon/public** key (NOT the publishable key - the anon key starts with `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`)
-
-To generate a secure secret key, run:
-```bash
-python -c "import secrets; print(secrets.token_hex(32))"
-```
-
-7. Set up Supabase database tables:
+7. Set up Supabase database:
    - Open your Supabase project dashboard
    - Navigate to the SQL Editor
-   - Open the `supabase_setup.sql` file from the backend directory
-   - Copy and paste the SQL script into the SQL Editor
-   - Click "Run" to execute the script
-   - This will create the `users` and `save_states` tables
+   - Run the SQL script from `supabase_setup.sql`
 
 8. Run development server:
 ```bash
@@ -122,46 +153,12 @@ The application will be available at `http://localhost:5000`
 
 ## Deployment
 
-### Vercel (Single Project)
+### Vercel
 
 1. Push code to GitHub
-2. Import project in Vercel from the `backend` directory
-3. Set environment variables:
-   - `SUPABASE_URL` - Your Supabase project URL
-   - `SUPABASE_KEY` - Your Supabase anon/public key
-   - `SECRET_KEY` - Your JWT secret key
+2. Import project in Vercel
+3. Set environment variables in Vercel dashboard
 4. Deploy
-
-The application will be deployed as a single Flask application with server-side rendering.
-
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login and get tokens
-- `POST /api/auth/refresh` - Refresh access token
-
-### Simulation
-- `GET /api/simulation/state` - Get demo 10x10 grid configuration
-- `POST /api/simulation/save` - Save game state (requires auth)
-- `GET /api/simulation/save` - Get saved game state (requires auth)
-
-## Game Commands
-
-Write Python-like scripts in the code editor:
-
-```python
-bbot.move()
-bbot.move()
-bbot.turn()
-bbot.move()
-bbot.harvest()
-bbot.turn()
-bbot.move()
-bbot.build()
-```
-
-Click "Run Code" to execute the script and watch B-Bot navigate the grid, harvest resources, and build structures.
 
 ## License
 
