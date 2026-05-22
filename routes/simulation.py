@@ -127,7 +127,7 @@ def execute_script():
         command_queue = interpreter.parse_and_validate(script)
         
         # Simulate execution to generate detailed command queue
-        detailed_queue, final_grid, final_resources, final_population = simulate_execution(
+        detailed_queue, final_grid, final_resources, final_population, final_bot = simulate_execution(
             command_queue,
             initial_grid,
             initial_bot,
@@ -139,12 +139,7 @@ def execute_script():
             'commands': detailed_queue,
             'final_state': {
                 'grid': final_grid,
-                'bot': {
-                    'x': initial_bot['x'],  # Bot position will be updated by frontend animation
-                    'y': initial_bot['y'],
-                    'direction': initial_bot['direction'],
-                    'inventory': final_resources
-                },
+                'bot': final_bot,
                 'resources': final_resources,
                 'population': final_population
             }
