@@ -101,6 +101,7 @@ For detailed documentation, see the [docs/](docs/) folder:
 - [Deployment](docs/deployment.md) - Setup and deployment instructions
 - [Testing](docs/testing.md) - Test structure and running tests
 - [Contributing](docs/contributing.md) - Development guidelines
+- [Roadmap](docs/roadmap.md) - Future features and improvements
 
 ## Quick Start
 
