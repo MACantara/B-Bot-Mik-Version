@@ -12,8 +12,15 @@ from core.interpreter.evaluator import ExpressionEvaluator
 class ForLoopProcessor(NodeProcessor):
     """Processes for loop nodes and unrolls them."""
     
-    def __init__(self):
-        self.evaluator = ExpressionEvaluator()
+    # Shared evaluator instance
+    _evaluator = None
+    
+    @property
+    def evaluator(self):
+        """Lazy initialization of evaluator."""
+        if self._evaluator is None:
+            self._evaluator = ExpressionEvaluator()
+        return self._evaluator
     
     def can_process(self, node: ast.AST) -> bool:
         """Check if this is a for loop node."""
@@ -43,10 +50,13 @@ class ForLoopProcessor(NodeProcessor):
         
         # Evaluate the range limit (can be an expression like len(positions))
         limit_arg = for_node.iter.args[0]
-        limit = self.evaluator.evaluate(limit_arg, scope)
+        try:
+            limit = self.evaluator.evaluate(limit_arg, scope)
+        except ScriptValidationError as e:
+            raise ScriptValidationError(f"Failed to evaluate range limit: {e}")
         
         if not isinstance(limit, int) or limit < 0:
-            raise ScriptValidationError("Range limit must be a positive integer")
+            raise ScriptValidationError(f"Range limit must be a positive integer, got {type(limit).__name__}: {limit}")
         
         if limit > MAX_ITERATIONS:
             raise ScriptValidationError(f"Loop limit {limit} exceeds maximum of {MAX_ITERATIONS}")
