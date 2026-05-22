@@ -44,7 +44,6 @@ export async function processCommandQueue(commands, cellSize) {
                     resources = cmd.resources;
                     updateResources(resources);
                 }
-                renderGrid(cmd.grid, cellSize);
                 break;
             
             case 'BUILD':
@@ -57,7 +56,6 @@ export async function processCommandQueue(commands, cellSize) {
                     resources = cmd.resources;
                     updateResources(resources);
                 }
-                renderGrid(cmd.grid, cellSize);
                 break;
         }
         
