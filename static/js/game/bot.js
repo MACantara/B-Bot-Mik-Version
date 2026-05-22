@@ -9,6 +9,22 @@ export function createBotSprite(x, y, cellSize) {
     const container = getGridContainer();
     if (!container) return;
     
+    // Remove existing bot group if it exists
+    if (botGroup) {
+        container.remove(botGroup);
+        // Dispose of geometries and materials
+        botGroup.traverse((child) => {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) {
+                if (Array.isArray(child.material)) {
+                    child.material.forEach(m => m.dispose());
+                } else {
+                    child.material.dispose();
+                }
+            }
+        });
+    }
+    
     // Create bot group
     botGroup = new THREE.Group();
     
