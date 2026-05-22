@@ -1,16 +1,21 @@
 {% extends "base.html" %}
 
+{% block head %}
+<!-- Lucide Icons CDN -->
+<script src="https://unpkg.com/lucide@0.435.0/dist/umd/lucide.min.js" onload="window.lucideLoaded = true;"></script>
+{% endblock %}
+
 {% block content %}
 <div class="h-screen flex flex-col bg-gray-100">
     <div class="bg-gray-800 text-white p-4">
         <div class="flex justify-between items-center">
             <h1 class="text-xl font-bold">B-Bot</h1>
-            <div class="flex gap-4 text-sm">
-                <span>🌲 Wood: <span id="woodCount">0</span></span>
-                <span>🪨 Stone: <span id="stoneCount">0</span></span>
-                <span>⚙️ Metal: <span id="metalCount">0</span></span>
-                <span>⚡ Energy: <span id="energyCount">0</span></span>
-                <span>👥 Population: <span id="populationCount">0</span></span>
+            <div class="flex gap-4 text-sm items-center">
+                <span class="flex items-center gap-1"><i data-lucide="tree" class="w-4 h-4"></i> Wood: <span id="woodCount">0</span></span>
+                <span class="flex items-center gap-1"><i data-lucide="mountain" class="w-4 h-4"></i> Stone: <span id="stoneCount">0</span></span>
+                <span class="flex items-center gap-1"><i data-lucide="cog" class="w-4 h-4"></i> Metal: <span id="metalCount">0</span></span>
+                <span class="flex items-center gap-1"><i data-lucide="zap" class="w-4 h-4"></i> Energy: <span id="energyCount">0</span></span>
+                <span class="flex items-center gap-1"><i data-lucide="users" class="w-4 h-4"></i> Population: <span id="populationCount">0</span></span>
             </div>
             <button id="logoutBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
                 Logout
@@ -90,18 +95,28 @@ const TILE_COLORS = {
     INDUSTRIAL: 0xB22222
 };
 
+// Note: PixiJS grid icons use emoji characters for simplicity.
+// Converting Lucide SVG icons to PIXI.Graphics requires complex SVG path parsing.
+
 // Initialize PixiJS Application
 async function initPixiJS() {
     const container = document.getElementById('pixiContainer');
     
+    // Create canvas element explicitly for PixiJS v8
+    const canvas = document.createElement('canvas');
+    canvas.width = GRID_WIDTH;
+    canvas.height = GRID_HEIGHT;
+    container.appendChild(canvas);
+    
     app = new PIXI.Application({
+        view: canvas,
         width: GRID_WIDTH,
         height: GRID_HEIGHT,
         backgroundColor: 0xffffff,
-        antialias: true
+        antialias: true,
+        autoDensity: true,
+        resolution: window.devicePixelRatio || 1
     });
-    
-    container.appendChild(app.view);
     
     // Create main grid container (camera)
     gridContainer = new PIXI.Container();
@@ -359,8 +374,13 @@ async function processCommandQueue(commands) {
     }
 }
 
-// Initialize on DOM load
-document.addEventListener('DOMContentLoaded', async () => {
+// Initialize on window load to ensure all scripts are loaded
+window.addEventListener('load', async () => {
+    // Initialize Lucide icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+    
     const token = localStorage.getItem('access_token');
     if (!token) {
         window.location.href = '/login';
