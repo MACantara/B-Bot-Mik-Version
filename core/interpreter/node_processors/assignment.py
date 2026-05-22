@@ -5,10 +5,14 @@ import ast
 from typing import Dict, Any
 from .base import NodeProcessor
 from core.interpreter.exceptions import ScriptValidationError
+from core.interpreter.evaluator import ExpressionEvaluator
 
 
 class AssignmentProcessor(NodeProcessor):
     """Processes variable assignment nodes."""
+    
+    def __init__(self):
+        self.evaluator = ExpressionEvaluator()
     
     def can_process(self, node: ast.AST) -> bool:
         """Check if this is an assignment node."""
@@ -28,8 +32,17 @@ class AssignmentProcessor(NodeProcessor):
         if isinstance(assign_node.targets[0], ast.Name):
             var_name = assign_node.targets[0].id
             
-            # Only support constant integer assignments for now
-            if isinstance(assign_node.value, ast.Constant) and isinstance(assign_node.value.value, int):
-                scope[var_name] = assign_node.value.value
-            else:
-                raise ScriptValidationError("Only constant integer assignments are supported")
+            # Use expression evaluator to evaluate the right-hand side
+            try:
+                value = self.evaluator.evaluate(assign_node.value, scope)
+                
+                # Type validation - support int, bool, and list
+                from core.interpreter.data_types import BotList
+                if not isinstance(value, (int, bool, BotList)):
+                    raise ScriptValidationError(f"Unsupported type for assignment: {type(value).__name__}")
+                
+                scope[var_name] = value
+            except ScriptValidationError:
+                raise
+            except Exception as e:
+                raise ScriptValidationError(f"Failed to evaluate assignment: {e}")
