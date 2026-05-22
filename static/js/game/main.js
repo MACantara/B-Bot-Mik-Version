@@ -9,8 +9,8 @@ import { addConsoleOutput, clearConsole } from './console.js';
 import { saveGameState, loadGameState, applyLoadedState } from './storage.js';
 import { initIcons } from '../shared/icons.js';
 
-const DEFAULT_CODE = `bot.move()
-bot.move()
+const DEFAULT_CODE = `for i in range(2):
+    bot.move()
 bot.turn_left()
 bot.move()
 bot.harvest()
