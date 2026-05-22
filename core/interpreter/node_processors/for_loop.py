@@ -6,10 +6,14 @@ from typing import Dict, Any
 from .base import NodeProcessor
 from core.interpreter.config import MAX_ITERATIONS
 from core.interpreter.exceptions import ScriptValidationError
+from core.interpreter.evaluator import ExpressionEvaluator
 
 
 class ForLoopProcessor(NodeProcessor):
     """Processes for loop nodes and unrolls them."""
+    
+    def __init__(self):
+        self.evaluator = ExpressionEvaluator()
     
     def can_process(self, node: ast.AST) -> bool:
         """Check if this is a for loop node."""
@@ -17,7 +21,7 @@ class ForLoopProcessor(NodeProcessor):
     
     def process(self, node: ast.AST, scope: Dict[str, Any], generator) -> None:
         """
-        Process a for loop and unroll it if it uses range() with constant value.
+        Process a for loop and unroll it if it uses range().
         
         Args:
             node: The AST For node
@@ -28,20 +32,19 @@ class ForLoopProcessor(NodeProcessor):
         
         # Check if it's a range() loop
         if not isinstance(for_node.iter, ast.Call) or not isinstance(for_node.iter.func, ast.Name):
-            raise ScriptValidationError("For loops only support range() with constant integer values")
+            raise ScriptValidationError("For loops only support range()")
         
         if for_node.iter.func.id != 'range':
-            raise ScriptValidationError("For loops only support range() with constant integer values")
+            raise ScriptValidationError("For loops only support range()")
         
         # Get the range limit
         if len(for_node.iter.args) == 0:
             raise ScriptValidationError("range() requires at least one argument")
         
+        # Evaluate the range limit (can be an expression like len(positions))
         limit_arg = for_node.iter.args[0]
-        if not isinstance(limit_arg, ast.Constant):
-            raise ScriptValidationError("Range limit must be a constant integer")
+        limit = self.evaluator.evaluate(limit_arg, scope)
         
-        limit = limit_arg.value
         if not isinstance(limit, int) or limit < 0:
             raise ScriptValidationError("Range limit must be a positive integer")
         
