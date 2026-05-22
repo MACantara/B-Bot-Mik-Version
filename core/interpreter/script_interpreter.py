@@ -1,32 +1,62 @@
 """
-AST-based secure script interpreter for B-Bot commands.
-Uses Python's ast module to parse and validate user scripts without using eval/exec.
+RestrictedPython-based secure script interpreter for B-Bot commands.
+Uses RestrictedPython to compile and execute user scripts in a safe environment.
 """
-import ast
+import multiprocessing
 from typing import List, Dict, Any
-from .config import (
-    ALLOWED_COMMANDS,
-    ALLOWED_CONTROL,
-    FORBIDDEN_MODULES,
-    FORBIDDEN_FUNCTIONS,
-    MAX_ITERATIONS
-)
 from .exceptions import ScriptValidationError
-from .ast_validator import ASTValidator
-from .command_generator import CommandGenerator
+from .safe_globals import get_safe_globals, compile_script
+from .bot_command import BotCommand
+
+
+def _execute_script_worker(script: str) -> List[Dict[str, Any]]:
+    """
+    Worker function for executing script in a separate process.
+    
+    Args:
+        script: The script string to execute
+        
+    Returns:
+        Command queue from bot object
+    """
+    from .safe_globals import get_safe_globals, compile_script
+    from .bot_command import BotCommand
+    from .exceptions import ScriptValidationError
+    
+    # Compile the script
+    compiled_code, errors = compile_script(script)
+    if errors:
+        raise ScriptValidationError(f"Compilation error: {errors}")
+    
+    # Get fresh globals and bot instance
+    safe_globals = get_safe_globals()
+    bot = BotCommand()
+    safe_globals['bot'] = bot
+    
+    # Execute the script
+    try:
+        exec(compiled_code, safe_globals, {})
+    except ImportError as e:
+        raise ScriptValidationError(f"Import error: {str(e)}")
+    
+    return bot.get_commands()
 
 
 class ScriptInterpreter:
     """
     Secure interpreter for B-Bot scripting language.
-    Parses Python-like scripts using AST and validates against a whitelist of allowed operations.
+    Uses RestrictedPython to compile and execute scripts in a safe environment.
     """
     
-    def __init__(self):
+    def __init__(self, timeout: int = 5):
+        """
+        Initialize the interpreter.
+        
+        Args:
+            timeout: Maximum execution time in seconds (default: 5)
+        """
         self.command_queue: List[Dict[str, Any]] = []
-        self.iteration_count = 0
-        self.validator = ASTValidator()
-        self.generator = CommandGenerator()
+        self.timeout = timeout
     
     def parse_and_validate(self, script: str) -> List[Dict[str, Any]]:
         """
@@ -42,18 +72,33 @@ class ScriptInterpreter:
             ScriptValidationError: If script contains invalid or unsafe code
         """
         self.command_queue = []
-        self.iteration_count = 0
+        
+        # Get safe globals
+        safe_globals = get_safe_globals()
         
         try:
-            # Parse the script into an AST
-            tree = ast.parse(script)
+            # Execute script in separate process with timeout
+            pool = multiprocessing.Pool(processes=1)
+            result = pool.apply_async(_execute_script_worker, (script,))
+            
+            # Wait for result with timeout
+            self.command_queue = result.get(timeout=self.timeout)
+            pool.close()
+            pool.join()
+            
+        except multiprocessing.TimeoutError:
+            pool.terminate()
+            pool.join()
+            raise ScriptValidationError(f"Script execution timeout: exceeded {self.timeout} seconds")
         except SyntaxError as e:
-            raise ScriptValidationError(f"Syntax error: {e}")
-        
-        # Validate the AST structure
-        self.validator.validate(tree)
-        
-        # Generate command queue from the validated AST
-        self.command_queue = self.generator.generate(tree)
+            raise ScriptValidationError(f"Syntax error at line {e.lineno}: {e.msg}", line=e.lineno)
+        except NameError as e:
+            raise ScriptValidationError(f"Name error: {str(e)}")
+        except TypeError as e:
+            raise ScriptValidationError(f"Type error: {str(e)}")
+        except ValueError as e:
+            raise ScriptValidationError(f"Value error: {str(e)}")
+        except Exception as e:
+            raise ScriptValidationError(f"Execution error: {str(e)}")
         
         return self.command_queue
