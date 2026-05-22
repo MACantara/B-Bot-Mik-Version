@@ -194,7 +194,7 @@ def simulate_execution(
     initial_grid: List[List[Dict[str, str]]],
     initial_bot: Dict[str, Any],
     initial_resources: Dict[str, int]
-) -> Tuple[List[Dict[str, Any]], Dict[str, Any], Dict[str, int], int]:
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any], Dict[str, int], int, Dict[str, Any]]:
     """
     Simulate the execution of a command queue and return the delta actions.
     
@@ -205,7 +205,7 @@ def simulate_execution(
         initial_resources: Initial resource counts
         
     Returns:
-        Tuple of (detailed command queue, final grid, final resources, population)
+        Tuple of (detailed command queue, final grid, final resources, population, final bot)
     """
     grid = [row[:] for row in initial_grid]  # Deep copy
     bot = initial_bot.copy()
@@ -282,4 +282,4 @@ def simulate_execution(
         
         detailed_queue.append(detailed_cmd)
     
-    return detailed_queue, grid, resources, population
+    return detailed_queue, grid, resources, population, bot
