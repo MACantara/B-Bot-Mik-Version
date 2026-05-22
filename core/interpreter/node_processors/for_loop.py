@@ -12,15 +12,8 @@ from core.interpreter.evaluator import ExpressionEvaluator
 class ForLoopProcessor(NodeProcessor):
     """Processes for loop nodes and unrolls them."""
     
-    # Shared evaluator instance
-    _evaluator = None
-    
-    @property
-    def evaluator(self):
-        """Lazy initialization of evaluator."""
-        if self._evaluator is None:
-            self._evaluator = ExpressionEvaluator()
-        return self._evaluator
+    def __init__(self):
+        self.evaluator = ExpressionEvaluator()
     
     def can_process(self, node: ast.AST) -> bool:
         """Check if this is a for loop node."""
