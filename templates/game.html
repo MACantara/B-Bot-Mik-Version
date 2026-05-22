@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="h-screen flex flex-col bg-gray-100">
+    <div class="bg-gray-800 text-white p-4">
+        <div class="flex justify-between items-center">
+            <h1 class="text-xl font-bold">B-Bot</h1>
+            <button id="logoutBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                Logout
+            </button>
+        </div>
+    </div>
+    
+    <div class="flex-1 flex overflow-hidden">
+        <div class="w-1/2 flex flex-col border-r border-gray-300">
+            <div class="flex-1">
+                <textarea id="codeEditor" class="w-full h-full p-4 font-mono text-sm resize-none focus:outline-none" placeholder="Enter your B-Bot code here..."></textarea>
+            </div>
+            
+            <div class="h-48 bg-gray-900 text-green-400 p-4 overflow-y-auto font-mono text-sm" id="console">
+                <div>Console output will appear here...</div>
+            </div>
+            
+            <div class="p-4 bg-gray-800 border-t border-gray-700 flex gap-4">
+                <button id="runBtn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded">
+                    Run Code
+                </button>
+                <button id="resetBtn" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded">
+                    Reset
+                </button>
+                <button id="saveBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded">
+                    Save
+                </button>
+                <button id="loadBtn" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded">
+                    Load
+                </button>
+            </div>
+        </div>
+        
+        <div class="w-1/2 p-4 bg-white">
+            <div id="gridContainer" class="grid gap-1" style="grid-template-columns: repeat(10, 1fr);">
+                <!-- Grid cells will be rendered here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const DEFAULT_CODE = `bbot.move()
+bbot.move()
+bbot.turn()
+bbot.move()
+bbot.harvest()
+bbot.turn()
+bbot.move()
+bbot.build()`;
+
+let grid = [];
+let bot = { x: 0, y: 0, direction: 'RIGHT', inventory: { wood: 0, stone: 0 } };
+let population = 0;
+let isRunning = false;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        window.location.href = '/login';
+        return;
+    }
+    
+    document.getElementById('codeEditor').value = DEFAULT_CODE;
+    initializeDemoGrid();
+    renderGrid();
+    loadSavedState();
+});
+
+function initializeDemoGrid() {
+    grid = [];
+    for (let y = 0; y < 10; y++) {
+        const row = [];
+        for (let x = 0; x < 10; x++) {
+            if ([2, 5, 8, 1, 6].includes(x) && [3, 7, 2, 8, 4].includes(y)) {
+                row.push({ type: 'TREE', id: `${x}-${y}` });
+            } else if ([3, 7, 4, 9, 2].includes(x) && [1, 5, 8, 3, 6].includes(y)) {
+                row.push({ type: 'ROCK', id: `${x}-${y}` });
+            } else {
+                row.push({ type: 'EMPTY', id: `${x}-${y}` });
+            }
+        }
+        grid.push(row);
+    }
+    bot = { x: 0, y: 0, direction: 'RIGHT', inventory: { wood: 0, stone: 0 } };
+    population = 0;
+}
+
+function renderGrid() {
+    const container = document.getElementById('gridContainer');
+    container.innerHTML = '';
+    
+    for (let y = 0; y < 10; y++) {
+        for (let x = 0; x < 10; x++) {
+            const cell = document.createElement('div');
+            cell.className = 'aspect-square border border-gray-300 flex items-center justify-center text-2xl';
+            
+            const cellData = grid[y][x];
+            if (cellData.type === 'TREE') {
+                cell.textContent = '🌲';
+                cell.classList.add('bg-green-100');
+            } else if (cellData.type === 'ROCK') {
+                cell.textContent = '🪨';
+                cell.classList.add('bg-gray-200');
+            } else if (cellData.type === 'HOUSE') {
+                cell.textContent = '🏠';
+                cell.classList.add('bg-yellow-100');
+            }
+            
+            if (x === bot.x && y === bot.y) {
+                const botIndicator = document.createElement('div');
+                botIndicator.className = 'text-3xl';
+                botIndicator.textContent = getBotArrow();
+                cell.innerHTML = '';
+                cell.appendChild(botIndicator);
+            }
+            
+            container.appendChild(cell);
+        }
+    }
+}
+
+function getBotArrow() {
+    const arrows = { 'UP': '⬆️', 'DOWN': '⬇️', 'LEFT': '⬅️', 'RIGHT': '➡️' };
+    return arrows[bot.direction] || '➡️';
+}
+
+function addConsoleOutput(message) {
+    const console = document.getElementById('console');
+    const line = document.createElement('div');
+    line.textContent = message;
+    console.appendChild(line);
+    console.scrollTop = console.scrollHeight;
+}
+
+function clearConsole() {
+    document.getElementById('console').innerHTML = '';
+}
+
+// Bot actions
+const bbot = {
+    move: () => {
+        switch (bot.direction) {
+            case 'UP': bot.y = Math.max(0, bot.y - 1); break;
+            case 'DOWN': bot.y = Math.min(9, bot.y + 1); break;
+            case 'LEFT': bot.x = Math.max(0, bot.x - 1); break;
+            case 'RIGHT': bot.x = Math.min(9, bot.x + 1); break;
+        }
+        addConsoleOutput(`Moved to (${bot.x}, ${bot.y})`);
+        renderGrid();
+    },
+    turn: () => {
+        const directions = ['UP', 'RIGHT', 'DOWN', 'LEFT'];
+        const currentIndex = directions.indexOf(bot.direction);
+        bot.direction = directions[(currentIndex + 1) % 4];
+        addConsoleOutput(`Turned to face ${bot.direction}`);
+        renderGrid();
+    },
+    harvest: () => {
+        const cell = grid[bot.y][bot.x];
+        if (cell.type === 'TREE') {
+            bot.inventory.wood += 1;
+            grid[bot.y][bot.x] = { type: 'EMPTY', id: cell.id };
+            addConsoleOutput(`Harvested tree. Wood: ${bot.inventory.wood}`);
+        } else if (cell.type === 'ROCK') {
+            bot.inventory.stone += 1;
+            grid[bot.y][bot.x] = { type: 'EMPTY', id: cell.id };
+            addConsoleOutput(`Harvested rock. Stone: ${bot.inventory.stone}`);
+        } else {
+            addConsoleOutput('Nothing to harvest here');
+        }
+        renderGrid();
+    },
+    build: () => {
+        const cell = grid[bot.y][bot.x];
+        if (cell.type === 'EMPTY') {
+            if (bot.inventory.wood >= 2 && bot.inventory.stone >= 1) {
+                bot.inventory.wood -= 2;
+                bot.inventory.stone -= 1;
+                grid[bot.y][bot.x] = { type: 'HOUSE', id: cell.id };
+                population += 1;
+                addConsoleOutput(`Built house. Population: ${population}`);
+            } else {
+                addConsoleOutput('Not enough resources to build (need 2 wood, 1 stone)');
+            }
+        } else {
+            addConsoleOutput('Cannot build on this cell');
+        }
+        renderGrid();
+    }
+};
+
+// Simple interpreter
+function executeCode(code) {
+    const lines = code.split('\n').filter(line => line.trim());
+    
+    for (const line of lines) {
+        const match = line.match(/bbot\.(\w+)\(\)/);
+        if (match) {
+            const action = match[1];
+            if (bbot[action]) {
+                bbot[action]();
+            } else {
+                addConsoleOutput(`Unknown action: ${action}`);
+            }
+        }
+    }
+}
+
+// Event listeners
+document.getElementById('runBtn').addEventListener('click', () => {
+    if (isRunning) return;
+    isRunning = true;
+    clearConsole();
+    const code = document.getElementById('codeEditor').value;
+    executeCode(code);
+    isRunning = false;
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+    clearConsole();
+    initializeDemoGrid();
+    renderGrid();
+});
+
+document.getElementById('logoutBtn').addEventListener('click', () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    window.location.href = '/login';
+});
+
+document.getElementById('saveBtn').addEventListener('click', async () => {
+    const token = localStorage.getItem('access_token');
+    try {
+        const response = await fetch('/api/simulation/save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                grid_json: grid,
+                wood_count: bot.inventory.wood,
+                stone_count: bot.inventory.stone,
+                population_count: population
+            })
+        });
+        
+        if (response.ok) {
+            addConsoleOutput('Game saved successfully!');
+        } else {
+            addConsoleOutput('Save failed');
+        }
+    } catch (err) {
+        addConsoleOutput('Save failed: Network error');
+    }
+});
+
+document.getElementById('loadBtn').addEventListener('click', async () => {
+    await loadSavedState();
+});
+
+async function loadSavedState() {
+    const token = localStorage.getItem('access_token');
+    try {
+        const response = await fetch('/api/simulation/save', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            grid = data.grid_json;
+            bot.inventory.wood = data.wood_count;
+            bot.inventory.stone = data.stone_count;
+            population = data.population_count;
+            renderGrid();
+            addConsoleOutput('Game loaded successfully!');
+        } else {
+            addConsoleOutput('No saved state found');
+        }
+    } catch (err) {
+        addConsoleOutput('Load failed: Network error');
+    }
+}
+</script>
+{% endblock %}

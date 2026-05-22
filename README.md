@@ -4,38 +4,26 @@ A command-based city-building simulation game where you control a robot (B-Bot) 
 
 ## Tech Stack
 
-### Frontend
-- React (Vite-based)
-- TypeScript
-- Tailwind CSS
-- Zustand (state management)
-- @uiw/react-codemirror (code editor with Python syntax highlighting)
-
-### Backend
-- FastAPI (Python 3.10+)
-- Pydantic v2
+### Backend & Frontend (Flask + Jinja2)
+- Flask (Python 3.10+)
+- Jinja2 templates (server-side rendering)
+- Tailwind CSS (via CDN)
 - Supabase Python Client
 - PostgreSQL (via Supabase)
 - JWT authentication with refresh tokens
+- Flask-CORS
 
 ## Project Structure
 
 ```
 B-Bot/
-├── frontend/                 # React + Vite + TypeScript
-│   ├── src/
-│   │   ├── components/       # UI components (Grid, Editor, Dashboard, Console)
-│   │   ├── store/           # Zustand store
-│   │   ├── interpreter/     # AST parser and executor
-│   │   └── types/           # TypeScript interfaces
-│   ├── vercel.json          # Vercel deployment config
-│   └── .env.example         # Environment variables template
-├── backend/                  # FastAPI + Python
+├── backend/                  # Flask + Python
 │   ├── app/
-│   │   ├── api/             # API endpoints (auth, simulation)
-│   │   ├── core/            # Security, config, database
-│   │   └── schemas/         # Pydantic schemas
-│   ├── main.py              # FastAPI application entry point
+│   │   ├── routes/          # Flask blueprints (auth, simulation)
+│   │   ├── core/            # Security, database
+│   │   └── templates/       # Jinja2 templates
+│   ├── wsgi.py              # WSGI entry point
+│   ├── vercel.json          # Vercel deployment config
 │   └── .env.example         # Environment variables template
 └── README.md
 ```
@@ -68,35 +56,8 @@ B-Bot/
 ## Setup Instructions
 
 ### Prerequisites
-- Node.js 18+
 - Python 3.10+
 - Supabase account (for PostgreSQL database)
-
-### Frontend Setup
-
-1. Navigate to frontend directory:
-```bash
-cd frontend
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Create environment file:
-- **Windows**: `copy .env.example .env`
-- **macOS/Linux**: `cp .env.example .env`
-
-4. Update `.env` with your API URL:
-```
-VITE_API_URL=http://localhost:8000
-```
-
-5. Run development server:
-```bash
-npm run dev
-```
 
 ### Backend Setup
 
@@ -150,38 +111,28 @@ python -c "import secrets; print(secrets.token_hex(32))"
    - Open the `supabase_setup.sql` file from the backend directory
    - Copy and paste the SQL script into the SQL Editor
    - Click "Run" to execute the script
-   - This will create the `users` and `save_states` tables with appropriate RLS policies
+   - This will create the `users` and `save_states` tables
 
 8. Run development server:
 ```bash
-uvicorn main:app --reload
+python wsgi.py
 ```
+
+The application will be available at `http://localhost:5000`
 
 ## Deployment
 
-### Frontend (Vercel)
+### Vercel (Single Project)
 
 1. Push code to GitHub
-2. Import project in Vercel
-3. Set environment variable: `VITE_API_URL` (your deployed backend URL)
-4. Deploy
-
-### Backend (Vercel)
-
-1. Push code to GitHub
-2. Create a new Vercel project from the `backend` directory
+2. Import project in Vercel from the `backend` directory
 3. Set environment variables:
    - `SUPABASE_URL` - Your Supabase project URL
    - `SUPABASE_KEY` - Your Supabase anon/public key
    - `SECRET_KEY` - Your JWT secret key
 4. Deploy
 
-### Alternative Backend Deployment (Railway, Render, etc.)
-
-1. Deploy FastAPI app to your preferred hosting platform
-2. Set environment variables (SUPABASE_URL, SUPABASE_KEY, SECRET_KEY)
-3. Run the `supabase_setup.sql` script in your Supabase SQL Editor
-4. Update frontend `VITE_API_URL` to point to production backend
+The application will be deployed as a single Flask application with server-side rendering.
 
 ## API Endpoints
 
