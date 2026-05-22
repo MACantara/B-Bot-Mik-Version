@@ -198,7 +198,7 @@ const bbot = {
 };
 
 // Simple interpreter
-function executeCode(code) {
+async function executeCode(code) {
     const lines = code.split('\n').filter(line => line.trim());
     
     for (const line of lines) {
@@ -207,6 +207,7 @@ function executeCode(code) {
             const action = match[1];
             if (bbot[action]) {
                 bbot[action]();
+                await new Promise(resolve => setTimeout(resolve, 500));
             } else {
                 addConsoleOutput(`Unknown action: ${action}`);
             }
@@ -215,12 +216,12 @@ function executeCode(code) {
 }
 
 // Event listeners
-document.getElementById('runBtn').addEventListener('click', () => {
+document.getElementById('runBtn').addEventListener('click', async () => {
     if (isRunning) return;
     isRunning = true;
     clearConsole();
     const code = document.getElementById('codeEditor').value;
-    executeCode(code);
+    await executeCode(code);
     isRunning = false;
 });
 
