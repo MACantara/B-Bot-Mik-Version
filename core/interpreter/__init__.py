@@ -1,20 +1,15 @@
 """
 B-Bot Script Interpreter Module
 
-A secure AST-based interpreter for B-Bot scripting language.
+A RestrictedPython-based secure interpreter for B-Bot scripting language.
 This module provides validation, command generation, and simulation capabilities.
 """
 
 from .script_interpreter import ScriptInterpreter
 from .simulator import simulate_execution, Simulator
 from .exceptions import ScriptValidationError, SimulationError
-from .config import (
-    ALLOWED_COMMANDS,
-    ALLOWED_CONTROL,
-    FORBIDDEN_MODULES,
-    FORBIDDEN_FUNCTIONS,
-    MAX_ITERATIONS
-)
+from .bot_command import BotCommand
+from .safe_globals import get_safe_globals, compile_script
 
 __all__ = [
     'ScriptInterpreter',
@@ -22,9 +17,7 @@ __all__ = [
     'Simulator',
     'ScriptValidationError',
     'SimulationError',
-    'ALLOWED_COMMANDS',
-    'ALLOWED_CONTROL',
-    'FORBIDDEN_MODULES',
-    'FORBIDDEN_FUNCTIONS',
-    'MAX_ITERATIONS'
+    'BotCommand',
+    'get_safe_globals',
+    'compile_script'
 ]
