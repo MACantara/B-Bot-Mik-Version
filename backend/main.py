@@ -7,7 +7,7 @@ app = FastAPI(title="B-Bot API")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://bbot.vercel.app"],
+    allow_origins=["http://localhost:5173", "https://bbot.vercel.app", "https://b-bot-mik-version.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
