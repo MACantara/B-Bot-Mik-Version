@@ -3,10 +3,13 @@ import { Dashboard } from './components/Dashboard';
 import { CodeEditor } from './components/CodeEditor';
 import { GridVisualizer } from './components/GridVisualizer';
 import { Console } from './components/Console';
+import { Login } from './components/Login';
+import { Register } from './components/Register';
 import { useGameStore } from './store/gameStore';
 import { createLexer } from './interpreter/lexer';
 import { createParser } from './interpreter/parser';
 import { executeScript } from './interpreter/executor';
+import { apiClient } from './lib/api';
 import type { CellState } from './types/game';
 
 const DEFAULT_CODE = `bbot.move()
@@ -20,10 +23,22 @@ bbot.build()`;
 
 function App() {
   const [code, setCode] = useState(DEFAULT_CODE);
-  const { isRunning, initializeLevel, clearConsole } = useGameStore();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authView, setAuthView] = useState<'login' | 'register'>('login');
+  const { isRunning, initializeLevel, clearConsole, grid, bot, population } = useGameStore();
 
   useEffect(() => {
-    // Initialize with demo grid
+    // Check if user is already authenticated
+    if (apiClient['accessToken']) {
+      setIsAuthenticated(true);
+      loadSavedState();
+    } else {
+      // Initialize with demo grid for non-authenticated users
+      initializeDemoGrid();
+    }
+  }, []);
+
+  const initializeDemoGrid = () => {
     const demoGrid: CellState[][] = [];
     for (let y = 0; y < 10; y++) {
       const row: CellState[] = [];
@@ -39,7 +54,48 @@ function App() {
       demoGrid.push(row);
     }
     initializeLevel(demoGrid);
-  }, [initializeLevel]);
+  };
+
+  const loadSavedState = async () => {
+    try {
+      const savedState = await apiClient.getSavedState();
+      initializeLevel(savedState.grid_json);
+      useGameStore.getState().setBotInventory(savedState.wood_count, savedState.stone_count);
+      useGameStore.getState().setPopulation(savedState.population_count);
+    } catch (err) {
+      // If no saved state, initialize demo grid
+      initializeDemoGrid();
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      await apiClient.saveSimulationState({
+        grid_json: grid,
+        wood_count: bot.inventory.wood,
+        stone_count: bot.inventory.stone,
+        population_count: population,
+      });
+      useGameStore.getState().addConsoleOutput('Game saved successfully!');
+    } catch (err) {
+      useGameStore.getState().addConsoleOutput(`Save failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleLoad = async () => {
+    try {
+      await loadSavedState();
+      useGameStore.getState().addConsoleOutput('Game loaded successfully!');
+    } catch (err) {
+      useGameStore.getState().addConsoleOutput(`Load failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleLogout = () => {
+    apiClient.clearTokens();
+    setIsAuthenticated(false);
+    initializeDemoGrid();
+  };
 
   const handleRunCode = async () => {
     if (isRunning) return;
@@ -62,22 +118,25 @@ function App() {
 
   const handleReset = () => {
     useGameStore.getState().resetGame();
-    const demoGrid: CellState[][] = [];
-    for (let y = 0; y < 10; y++) {
-      const row: CellState[] = [];
-      for (let x = 0; x < 10; x++) {
-        if ([2, 5, 8, 1, 6].includes(x) && [3, 7, 2, 8, 4].includes(y)) {
-          row.push({ type: 'TREE', id: `${x}-${y}` });
-        } else if ([3, 7, 4, 9, 2].includes(x) && [1, 5, 8, 3, 6].includes(y)) {
-          row.push({ type: 'ROCK', id: `${x}-${y}` });
-        } else {
-          row.push({ type: 'EMPTY', id: `${x}-${y}` });
-        }
-      }
-      demoGrid.push(row);
-    }
-    initializeLevel(demoGrid);
+    initializeDemoGrid();
   };
+
+  if (!isAuthenticated) {
+    if (authView === 'login') {
+      return (
+        <Login
+          onLogin={() => setIsAuthenticated(true)}
+          onSwitchToRegister={() => setAuthView('register')}
+        />
+      );
+    }
+    return (
+      <Register
+        onRegister={() => setIsAuthenticated(true)}
+        onSwitchToLogin={() => setAuthView('login')}
+      />
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col bg-gray-100">
@@ -101,6 +160,31 @@ function App() {
             >
               Reset
             </button>
+            {isAuthenticated && (
+              <>
+                <button
+                  onClick={handleSave}
+                  disabled={isRunning}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-bold py-3 px-6 rounded transition-colors"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={handleLoad}
+                  disabled={isRunning}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white font-bold py-3 px-6 rounded transition-colors"
+                >
+                  Load
+                </button>
+                <button
+                  onClick={handleLogout}
+                  disabled={isRunning}
+                  className="flex-1 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-600 text-white font-bold py-3 px-6 rounded transition-colors"
+                >
+                  Logout
+                </button>
+              </>
+            )}
           </div>
         </div>
         <div className="w-1/2">

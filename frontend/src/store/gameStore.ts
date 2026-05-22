@@ -131,4 +131,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
       isRunning: false,
     });
   },
+
+  setBotInventory: (wood: number, stone: number) => {
+    set((state) => ({
+      bot: {
+        ...state.bot,
+        inventory: { wood, stone },
+      },
+    }));
+  },
+
+  setPopulation: (count: number) => {
+    set({ population: count });
+  },
 }));

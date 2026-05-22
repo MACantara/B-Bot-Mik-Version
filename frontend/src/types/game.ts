@@ -25,4 +25,6 @@ export interface GameStore {
   addConsoleOutput: (message: string) => void;
   clearConsole: () => void;
   resetGame: () => void;
+  setBotInventory: (wood: number, stone: number) => void;
+  setPopulation: (count: number) => void;
 }
