@@ -6,6 +6,8 @@ import ast
 from typing import List, Dict, Any
 from core.interpreter.node_processors import processors
 from core.interpreter.exceptions import ScriptValidationError
+from core.interpreter.function_registry import FunctionRegistry
+from core.interpreter.scope import ScopeManager
 
 
 class CommandGenerator:
@@ -13,7 +15,17 @@ class CommandGenerator:
     
     def __init__(self):
         self.command_queue: List[Dict[str, Any]] = []
-        self.processors = processors
+        self.function_registry = FunctionRegistry()
+        self.scope_manager = ScopeManager()
+        self.loop_control = None  # Track break/continue signals
+        
+        # Initialize processors with dependencies
+        from core.interpreter.node_processors.function_def import FunctionDefProcessor
+        from core.interpreter.node_processors.break_continue import BreakContinueProcessor
+        self.processors = processors + [
+            FunctionDefProcessor(self.function_registry),
+            BreakContinueProcessor()
+        ]
     
     def generate(self, tree: ast.AST) -> List[Dict[str, Any]]:
         """
@@ -48,8 +60,4 @@ class CommandGenerator:
                 return
         
         # Handle unsupported nodes
-        if isinstance(node, ast.While):
-            raise ScriptValidationError("While loops are not currently supported. Use for loops with range() instead.")
-        
-        elif isinstance(node, ast.If):
-            raise ScriptValidationError("If statements are not currently supported.")
+        raise ScriptValidationError(f"Unsupported node type: {type(node).__name__}")
