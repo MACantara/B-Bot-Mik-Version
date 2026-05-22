@@ -35,7 +35,10 @@ class WhileLoopProcessor(NodeProcessor):
         while True:
             # Check iteration limit
             if iteration_count >= MAX_ITERATIONS:
-                raise ScriptValidationError(f"While loop exceeded maximum of {MAX_ITERATIONS} iterations")
+                raise ScriptValidationError(
+                    f"While loop exceeded maximum of {MAX_ITERATIONS} iterations",
+                    node=while_node
+                )
             
             # Evaluate the condition
             condition = self.evaluator.evaluate(while_node.test, scope)

@@ -30,7 +30,10 @@ class IfStatementProcessor(NodeProcessor):
         if_node = node
         
         # Evaluate the condition
-        condition = self.evaluator.evaluate(if_node.test, scope)
+        try:
+            condition = self.evaluator.evaluate(if_node.test, scope)
+        except ScriptValidationError as e:
+            raise ScriptValidationError(f"Failed to evaluate if condition: {e}", node=if_node)
         
         # Process the appropriate branch
         if condition:

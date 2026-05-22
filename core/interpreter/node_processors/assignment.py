@@ -39,10 +39,13 @@ class AssignmentProcessor(NodeProcessor):
                 # Type validation - support int, bool, and list
                 from core.interpreter.data_types import BotList
                 if not isinstance(value, (int, bool, BotList)):
-                    raise ScriptValidationError(f"Unsupported type for assignment: {type(value).__name__}")
+                    raise ScriptValidationError(
+                        f"Unsupported type for assignment: {type(value).__name__}",
+                        node=assign_node
+                    )
                 
                 scope[var_name] = value
             except ScriptValidationError:
                 raise
             except Exception as e:
-                raise ScriptValidationError(f"Failed to evaluate assignment: {e}")
+                raise ScriptValidationError(f"Failed to evaluate assignment: {e}", node=assign_node)

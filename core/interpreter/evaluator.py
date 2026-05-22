@@ -32,7 +32,7 @@ class ExpressionEvaluator:
             if node.id in scope:
                 return scope[node.id]
             else:
-                raise ScriptValidationError(f"Variable '{node.id}' is not defined")
+                raise ScriptValidationError(f"Variable '{node.id}' is not defined", node=node)
         
         elif isinstance(node, ast.List):
             return self._evaluate_list(node, scope)
@@ -56,7 +56,7 @@ class ExpressionEvaluator:
             return self._evaluate_unary_op(node, scope)
         
         else:
-            raise ScriptValidationError(f"Unsupported expression type: {type(node).__name__}")
+            raise ScriptValidationError(f"Unsupported expression type: {type(node).__name__}", node=node)
     
     def _evaluate_list(self, node: ast.List, scope: Dict[str, Any]) -> BotList:
         """
@@ -88,7 +88,7 @@ class ExpressionEvaluator:
         value = self.evaluate(node.value, scope)
         
         if not isinstance(value, BotList):
-            raise ScriptValidationError("Can only index lists")
+            raise ScriptValidationError("Can only index lists", node=node)
         
         # Evaluate the index
         if isinstance(node.slice, ast.Index):  # Python 3.8 and earlier
@@ -96,10 +96,10 @@ class ExpressionEvaluator:
         elif isinstance(node.slice, ast.Constant):  # Python 3.9+
             index = node.slice.value
         else:
-            raise ScriptValidationError("Only constant integer indices are supported")
+            raise ScriptValidationError("Only constant integer indices are supported", node=node)
         
         if not isinstance(index, int):
-            raise ScriptValidationError("Index must be an integer")
+            raise ScriptValidationError("Index must be an integer", node=node)
         
         return value[index]
     
@@ -120,17 +120,17 @@ class ExpressionEvaluator:
             # Handle built-in functions
             if func_name == 'len':
                 if len(node.args) != 1:
-                    raise ScriptValidationError("len() requires exactly 1 argument")
+                    raise ScriptValidationError("len() requires exactly 1 argument", node=node)
                 value = self.evaluate(node.args[0], scope)
                 if not isinstance(value, (BotList, list)):
-                    raise ScriptValidationError("len() requires a list")
+                    raise ScriptValidationError("len() requires a list", node=node)
                 return len(value)
             
             elif func_name == 'append':
                 # This is a method call, should be handled differently
-                raise ScriptValidationError("append() is a method, use list.append(value)")
+                raise ScriptValidationError("append() is a method, use list.append(value)", node=node)
         
-        raise ScriptValidationError(f"Unsupported function call: {func_name}")
+        raise ScriptValidationError(f"Unsupported function call: {func_name}", node=node)
     
     def _evaluate_comparison(self, node: ast.Compare, scope: Dict[str, Any]) -> bool:
         """

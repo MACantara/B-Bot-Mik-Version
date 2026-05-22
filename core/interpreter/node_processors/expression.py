@@ -37,7 +37,7 @@ class ExpressionProcessor(NodeProcessor):
                 command = call_node.func.attr
                 
                 if command not in ALLOWED_COMMANDS:
-                    raise ScriptValidationError(f"Unknown command: bot.{command}()")
+                    raise ScriptValidationError(f"Unknown command: bot.{command}()", node=node)
                 
                 # Parse arguments
                 args = []
@@ -47,7 +47,7 @@ class ExpressionProcessor(NodeProcessor):
                     elif isinstance(arg, ast.Str):  # Python 3.7 compatibility
                         args.append(arg.s)
                     else:
-                        raise ScriptValidationError(f"Invalid argument type for bot.{command}()")
+                        raise ScriptValidationError(f"Invalid argument type for bot.{command}()", node=node)
                 
                 # Add to command queue
                 command_dict = self._create_command_dict(command, args)
@@ -55,22 +55,23 @@ class ExpressionProcessor(NodeProcessor):
             
             else:
                 # Handle method calls on other objects (e.g., list.append)
-                self._handle_method_call(call_node, scope)
+                self._handle_method_call(call_node, scope, node)
         
         # Check if it's a custom function call
         elif isinstance(call_node.func, ast.Name):
             func_name = call_node.func.id
             
             if generator.function_registry.has(func_name):
-                self._call_user_function(func_name, call_node.args, scope, generator)
+                self._call_user_function(func_name, call_node.args, scope, generator, node)
     
-    def _handle_method_call(self, call_node: ast.Call, scope: Dict[str, Any]) -> None:
+    def _handle_method_call(self, call_node: ast.Call, scope: Dict[str, Any], expr_node: ast.AST) -> None:
         """
         Handle method calls on objects (e.g., list.append).
         
         Args:
             call_node: The AST Call node
             scope: Current variable scope dictionary
+            expr_node: The parent Expr node for error context
         """
         if not isinstance(call_node.func, ast.Attribute):
             return
@@ -79,7 +80,7 @@ class ExpressionProcessor(NodeProcessor):
         method_name = call_node.func.attr
         
         if obj_name is None or obj_name not in scope:
-            raise ScriptValidationError(f"Object '{obj_name}' is not defined")
+            raise ScriptValidationError(f"Object '{obj_name}' is not defined", node=expr_node)
         
         obj = scope[obj_name]
         
@@ -87,15 +88,15 @@ class ExpressionProcessor(NodeProcessor):
         if isinstance(obj, BotList):
             if method_name == 'append':
                 if len(call_node.args) != 1:
-                    raise ScriptValidationError("append() requires exactly 1 argument")
+                    raise ScriptValidationError("append() requires exactly 1 argument", node=expr_node)
                 value = self.evaluator.evaluate(call_node.args[0], scope)
                 obj.append(value)
             else:
-                raise ScriptValidationError(f"List method '{method_name}' is not supported")
+                raise ScriptValidationError(f"List method '{method_name}' is not supported", node=expr_node)
         else:
-            raise ScriptValidationError(f"Method '{method_name}' is not supported for this type")
+            raise ScriptValidationError(f"Method '{method_name}' is not supported for this type", node=expr_node)
     
-    def _call_user_function(self, func_name: str, args: List[ast.AST], scope: Dict[str, Any], generator) -> None:
+    def _call_user_function(self, func_name: str, args: List[ast.AST], scope: Dict[str, Any], generator, expr_node: ast.AST) -> None:
         """
         Call a user-defined function.
         
@@ -104,6 +105,7 @@ class ExpressionProcessor(NodeProcessor):
             args: AST nodes representing function arguments
             scope: Current variable scope dictionary
             generator: The command generator instance
+            expr_node: The parent Expr node for error context
         """
         func_def = generator.function_registry.get(func_name)
         params = func_def['params']
@@ -116,7 +118,10 @@ class ExpressionProcessor(NodeProcessor):
         
         # Check argument count
         if len(arg_values) != len(params):
-            raise ScriptValidationError(f"Function '{func_name}' expects {len(params)} arguments, got {len(arg_values)}")
+            raise ScriptValidationError(
+                f"Function '{func_name}' expects {len(params)} arguments, got {len(arg_values)}",
+                node=expr_node
+            )
         
         # Create new scope for function
         func_scope = scope.copy()

@@ -63,4 +63,4 @@ class CommandGenerator:
                 return
         
         # Handle unsupported nodes
-        raise ScriptValidationError(f"Unsupported node type: {type(node).__name__}")
+        raise ScriptValidationError(f"Unsupported node type: {type(node).__name__}", node=node)

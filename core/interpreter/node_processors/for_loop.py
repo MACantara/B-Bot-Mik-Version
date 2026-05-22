@@ -32,27 +32,33 @@ class ForLoopProcessor(NodeProcessor):
         
         # Check if it's a range() loop
         if not isinstance(for_node.iter, ast.Call) or not isinstance(for_node.iter.func, ast.Name):
-            raise ScriptValidationError("For loops only support range()")
+            raise ScriptValidationError("For loops only support range()", node=for_node)
         
         if for_node.iter.func.id != 'range':
-            raise ScriptValidationError("For loops only support range()")
+            raise ScriptValidationError("For loops only support range()", node=for_node)
         
         # Get the range limit
         if len(for_node.iter.args) == 0:
-            raise ScriptValidationError("range() requires at least one argument")
+            raise ScriptValidationError("range() requires at least one argument", node=for_node)
         
         # Evaluate the range limit (can be an expression like len(positions))
         limit_arg = for_node.iter.args[0]
         try:
             limit = self.evaluator.evaluate(limit_arg, scope)
         except ScriptValidationError as e:
-            raise ScriptValidationError(f"Failed to evaluate range limit: {e}")
+            raise ScriptValidationError(f"Failed to evaluate range limit: {e}", node=for_node)
         
         if not isinstance(limit, int) or limit < 0:
-            raise ScriptValidationError(f"Range limit must be a positive integer, got {type(limit).__name__}: {limit}")
+            raise ScriptValidationError(
+                f"Range limit must be a positive integer, got {type(limit).__name__}: {limit}",
+                node=for_node
+            )
         
         if limit > MAX_ITERATIONS:
-            raise ScriptValidationError(f"Loop limit {limit} exceeds maximum of {MAX_ITERATIONS}")
+            raise ScriptValidationError(
+                f"Loop limit {limit} exceeds maximum of {MAX_ITERATIONS}",
+                node=for_node
+            )
         
         # Unroll the loop
         loop_var = for_node.target.id if isinstance(for_node.target, ast.Name) else None
