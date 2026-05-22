@@ -39,9 +39,12 @@ class CommandGenerator:
         """
         self.command_queue = []
         
+        # Use a single global scope for the entire script
+        scope = {}
+        
         # Process the module body recursively
         for node in tree.body:
-            self._process_node(node, {})
+            self._process_node(node, scope)
         
         return self.command_queue
     
