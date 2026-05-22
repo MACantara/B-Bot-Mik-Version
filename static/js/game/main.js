@@ -16,6 +16,7 @@ bot.move()
 bot.harvest()
 bot.turn_right()
 bot.move()
+bot.harvest()
 bot.build("residential")`;
 
 // Grid configuration
@@ -134,6 +135,8 @@ function setupEventListeners() {
             bot = data.final_state.bot;
             
             renderGrid(grid, CELL_SIZE);
+            createBotSprite(bot.x, bot.y, CELL_SIZE);
+            setBotDirection(bot.direction);
             addConsoleOutput('Script execution completed!');
         }
         
