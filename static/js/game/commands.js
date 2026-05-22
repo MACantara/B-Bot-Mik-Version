@@ -71,6 +71,12 @@ export async function processCommandQueue(commands, cellSize) {
 export async function executeCode(code, grid, bot, resources) {
     const token = localStorage.getItem('access_token');
     
+    if (!token) {
+        addConsoleOutput('Error: Not logged in. Redirecting to login...');
+        setTimeout(() => window.location.href = '/login', 1000);
+        return null;
+    }
+    
     try {
         const response = await fetch('/api/simulation/execute', {
             method: 'POST',
@@ -89,6 +95,12 @@ export async function executeCode(code, grid, bot, resources) {
         if (!response.ok) {
             const errorData = await response.json();
             addConsoleOutput(`Error: ${errorData.error}`);
+            
+            // If token is invalid, redirect to login
+            if (response.status === 401) {
+                addConsoleOutput('Session expired. Redirecting to login...');
+                setTimeout(() => window.location.href = '/login', 1000);
+            }
             return null;
         }
         
