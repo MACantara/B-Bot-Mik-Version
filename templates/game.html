@@ -5,6 +5,13 @@
     <div class="bg-gray-800 text-white p-4">
         <div class="flex justify-between items-center">
             <h1 class="text-xl font-bold">B-Bot</h1>
+            <div class="flex gap-4 text-sm">
+                <span>🌲 Wood: <span id="woodCount">0</span></span>
+                <span>🪨 Stone: <span id="stoneCount">0</span></span>
+                <span>⚙️ Metal: <span id="metalCount">0</span></span>
+                <span>⚡ Energy: <span id="energyCount">0</span></span>
+                <span>👥 Population: <span id="populationCount">0</span></span>
+            </div>
             <button id="logoutBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
                 Logout
             </button>
@@ -37,101 +44,199 @@
             </div>
         </div>
         
-        <div class="w-1/2 p-4 bg-white">
-            <div id="gridContainer" class="grid gap-1" style="grid-template-columns: repeat(10, 1fr);">
-                <!-- Grid cells will be rendered here -->
-            </div>
+        <div class="w-1/2 p-4 bg-white flex items-center justify-center">
+            <div id="pixiContainer" class="border-2 border-gray-300"></div>
         </div>
     </div>
 </div>
 
+<script src="https://pixijs.download/v8.2.5/pixi.min.js"></script>
+
 <script>
-const DEFAULT_CODE = `bbot.move()
-bbot.move()
-bbot.turn()
-bbot.move()
-bbot.harvest()
-bbot.turn()
-bbot.move()
-bbot.build()`;
+const DEFAULT_CODE = `bot.move()
+bot.move()
+bot.turn()
+bot.move()
+bot.harvest()
+bot.turn()
+bot.move()
+bot.build("residential")`;
 
+// PixiJS Application and Game State
+let app;
+let gridContainer;
+let botSprite;
 let grid = [];
-let bot = { x: 0, y: 0, direction: 'RIGHT', inventory: { wood: 0, stone: 0 } };
+let bot = { x: 0, y: 0, direction: 'RIGHT', inventory: { wood: 0, stone: 0, metal: 0, energy: 0 } };
 let population = 0;
+let resources = { wood: 0, stone: 0, metal: 0, energy: 0 };
 let isRunning = false;
+let isAnimating = false;
 
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-        window.location.href = '/login';
-        return;
-    }
+// Grid configuration
+const GRID_SIZE = 20;
+const CELL_SIZE = 30;
+const GRID_WIDTH = GRID_SIZE * CELL_SIZE;
+const GRID_HEIGHT = GRID_SIZE * CELL_SIZE;
+
+// Tile colors for rendering
+const TILE_COLORS = {
+    EMPTY: 0xf0f0f0,
+    TREE: 0x90EE90,
+    ROCK: 0x808080,
+    ROAD: 0x404040,
+    RESIDENTIAL: 0xFFD700,
+    COMMERCIAL: 0x4169E1,
+    INDUSTRIAL: 0xB22222
+};
+
+// Initialize PixiJS Application
+async function initPixiJS() {
+    const container = document.getElementById('pixiContainer');
     
-    document.getElementById('codeEditor').value = DEFAULT_CODE;
-    initializeDemoGrid();
+    app = new PIXI.Application({
+        width: GRID_WIDTH,
+        height: GRID_HEIGHT,
+        backgroundColor: 0xffffff,
+        antialias: true
+    });
+    
+    container.appendChild(app.view);
+    
+    // Create main grid container (camera)
+    gridContainer = new PIXI.Container();
+    app.stage.addChild(gridContainer);
+    
+    // Render initial grid
     renderGrid();
-    loadSavedState();
-});
+    
+    // Create bot sprite
+    createBotSprite();
+}
 
+// Render the grid using PIXI.Graphics
+function renderGrid() {
+    // Clear existing grid
+    gridContainer.removeChildren();
+    
+    // Draw grid cells
+    for (let y = 0; y < GRID_SIZE; y++) {
+        for (let x = 0; x < GRID_SIZE; x++) {
+            const cellData = grid[y] && grid[y][x] ? grid[y][x] : { type: 'EMPTY', id: `${x}-${y}` };
+            
+            const graphics = new PIXI.Graphics();
+            const color = TILE_COLORS[cellData.type] || TILE_COLORS.EMPTY;
+            
+            graphics.beginFill(color);
+            graphics.drawRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+            graphics.endFill();
+            
+            // Add grid border
+            graphics.lineStyle(1, 0xcccccc);
+            graphics.drawRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+            
+            gridContainer.addChild(graphics);
+            
+            // Add simple icons for different tile types
+            if (cellData.type === 'TREE') {
+                const treeIcon = new PIXI.Text('🌲', { fontSize: 16 });
+                treeIcon.x = x * CELL_SIZE + 5;
+                treeIcon.y = y * CELL_SIZE + 5;
+                gridContainer.addChild(treeIcon);
+            } else if (cellData.type === 'ROCK') {
+                const rockIcon = new PIXI.Text('🪨', { fontSize: 16 });
+                rockIcon.x = x * CELL_SIZE + 5;
+                rockIcon.y = y * CELL_SIZE + 5;
+                gridContainer.addChild(rockIcon);
+            } else if (cellData.type === 'RESIDENTIAL') {
+                const houseIcon = new PIXI.Text('🏠', { fontSize: 16 });
+                houseIcon.x = x * CELL_SIZE + 5;
+                houseIcon.y = y * CELL_SIZE + 5;
+                gridContainer.addChild(houseIcon);
+            } else if (cellData.type === 'COMMERCIAL') {
+                const buildingIcon = new PIXI.Text('🏢', { fontSize: 16 });
+                buildingIcon.x = x * CELL_SIZE + 5;
+                buildingIcon.y = y * CELL_SIZE + 5;
+                gridContainer.addChild(buildingIcon);
+            } else if (cellData.type === 'INDUSTRIAL') {
+                const factoryIcon = new PIXI.Text('🏭', { fontSize: 16 });
+                factoryIcon.x = x * CELL_SIZE + 5;
+                factoryIcon.y = y * CELL_SIZE + 5;
+                gridContainer.addChild(factoryIcon);
+            }
+        }
+    }
+}
+
+// Create bot sprite
+function createBotSprite() {
+    botSprite = new PIXI.Text('🤖', { fontSize: 20 });
+    botSprite.x = bot.x * CELL_SIZE + 5;
+    botSprite.y = bot.y * CELL_SIZE + 5;
+    gridContainer.addChild(botSprite);
+}
+
+// Update bot position with smooth animation
+function updateBotPosition() {
+    if (!botSprite) return;
+    
+    const targetX = bot.x * CELL_SIZE + 5;
+    const targetY = bot.y * CELL_SIZE + 5;
+    
+    // Smooth lerp animation
+    const animate = () => {
+        const dx = targetX - botSprite.x;
+        const dy = targetY - botSprite.y;
+        
+        if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
+            botSprite.x = targetX;
+            botSprite.y = targetY;
+            isAnimating = false;
+            return;
+        }
+        
+        botSprite.x += dx * 0.2;
+        botSprite.y += dy * 0.2;
+        requestAnimationFrame(animate);
+    };
+    
+    isAnimating = true;
+    animate();
+}
+
+// Update resource display
+function updateResourceDisplay() {
+    document.getElementById('woodCount').textContent = resources.wood;
+    document.getElementById('stoneCount').textContent = resources.stone;
+    document.getElementById('metalCount').textContent = resources.metal;
+    document.getElementById('energyCount').textContent = resources.energy;
+    document.getElementById('populationCount').textContent = population;
+}
+
+// Initialize demo grid
 function initializeDemoGrid() {
     grid = [];
-    for (let y = 0; y < 10; y++) {
+    for (let y = 0; y < GRID_SIZE; y++) {
         const row = [];
-        for (let x = 0; x < 10; x++) {
-            if ([2, 5, 8, 1, 6].includes(x) && [3, 7, 2, 8, 4].includes(y)) {
+        for (let x = 0; x < GRID_SIZE; x++) {
+            if ((x, y) in [(2, 3), (5, 7), (8, 2), (1, 8), (6, 4), (12, 15), (15, 5), (18, 12), (3, 17), (10, 10)]) {
                 row.push({ type: 'TREE', id: `${x}-${y}` });
-            } else if ([3, 7, 4, 9, 2].includes(x) && [1, 5, 8, 3, 6].includes(y)) {
+            } else if ((x, y) in [(3, 1), (7, 5), (4, 8), (9, 3), (2, 6), (14, 11), (16, 8), (11, 14), (5, 18), (13, 2)]) {
                 row.push({ type: 'ROCK', id: `${x}-${y}` });
+            } else if ((x, y) in [(4, 4), (5, 4), (6, 4), (7, 4), (8, 4)]) {
+                row.push({ type: 'ROAD', id: `${x}-${y}` });
             } else {
                 row.push({ type: 'EMPTY', id: `${x}-${y}` });
             }
         }
         grid.push(row);
     }
-    bot = { x: 0, y: 0, direction: 'RIGHT', inventory: { wood: 0, stone: 0 } };
+    bot = { x: 0, y: 0, direction: 'RIGHT', inventory: { wood: 0, stone: 0, metal: 0, energy: 0 } };
     population = 0;
+    resources = { wood: 0, stone: 0, metal: 0, energy: 0 };
 }
 
-function renderGrid() {
-    const container = document.getElementById('gridContainer');
-    container.innerHTML = '';
-    
-    for (let y = 0; y < 10; y++) {
-        for (let x = 0; x < 10; x++) {
-            const cell = document.createElement('div');
-            cell.className = 'aspect-square border border-gray-300 flex items-center justify-center text-2xl';
-            
-            const cellData = grid[y][x];
-            if (cellData.type === 'TREE') {
-                cell.textContent = '🌲';
-                cell.classList.add('bg-green-100');
-            } else if (cellData.type === 'ROCK') {
-                cell.textContent = '🪨';
-                cell.classList.add('bg-gray-200');
-            } else if (cellData.type === 'HOUSE') {
-                cell.textContent = '🏠';
-                cell.classList.add('bg-yellow-100');
-            }
-            
-            if (x === bot.x && y === bot.y) {
-                const botIndicator = document.createElement('div');
-                botIndicator.className = 'text-3xl';
-                botIndicator.textContent = getBotArrow();
-                cell.innerHTML = '';
-                cell.appendChild(botIndicator);
-            }
-            
-            container.appendChild(cell);
-        }
-    }
-}
-
-function getBotArrow() {
-    const arrows = { 'UP': '⬆️', 'DOWN': '⬇️', 'LEFT': '⬅️', 'RIGHT': '➡️' };
-    return arrows[bot.direction] || '➡️';
-}
-
+// Console output
 function addConsoleOutput(message) {
     const console = document.getElementById('console');
     const line = document.createElement('div');
@@ -144,76 +249,147 @@ function clearConsole() {
     document.getElementById('console').innerHTML = '';
 }
 
-// Bot actions
-const bbot = {
-    move: () => {
-        switch (bot.direction) {
-            case 'UP': bot.y = Math.max(0, bot.y - 1); break;
-            case 'DOWN': bot.y = Math.min(9, bot.y + 1); break;
-            case 'LEFT': bot.x = Math.max(0, bot.x - 1); break;
-            case 'RIGHT': bot.x = Math.min(9, bot.x + 1); break;
-        }
-        addConsoleOutput(`Moved to (${bot.x}, ${bot.y})`);
-        renderGrid();
-    },
-    turn: () => {
-        const directions = ['UP', 'RIGHT', 'DOWN', 'LEFT'];
-        const currentIndex = directions.indexOf(bot.direction);
-        bot.direction = directions[(currentIndex + 1) % 4];
-        addConsoleOutput(`Turned to face ${bot.direction}`);
-        renderGrid();
-    },
-    harvest: () => {
-        const cell = grid[bot.y][bot.x];
-        if (cell.type === 'TREE') {
-            bot.inventory.wood += 1;
-            grid[bot.y][bot.x] = { type: 'EMPTY', id: cell.id };
-            addConsoleOutput(`Harvested tree. Wood: ${bot.inventory.wood}`);
-        } else if (cell.type === 'ROCK') {
-            bot.inventory.stone += 1;
-            grid[bot.y][bot.x] = { type: 'EMPTY', id: cell.id };
-            addConsoleOutput(`Harvested rock. Stone: ${bot.inventory.stone}`);
-        } else {
-            addConsoleOutput('Nothing to harvest here');
-        }
-        renderGrid();
-    },
-    build: () => {
-        const cell = grid[bot.y][bot.x];
-        if (cell.type === 'EMPTY') {
-            if (bot.inventory.wood >= 2 && bot.inventory.stone >= 1) {
-                bot.inventory.wood -= 2;
-                bot.inventory.stone -= 1;
-                grid[bot.y][bot.x] = { type: 'HOUSE', id: cell.id };
-                population += 1;
-                addConsoleOutput(`Built house. Population: ${population}`);
-            } else {
-                addConsoleOutput('Not enough resources to build (need 2 wood, 1 stone)');
-            }
-        } else {
-            addConsoleOutput('Cannot build on this cell');
-        }
-        renderGrid();
-    }
-};
-
-// Simple interpreter
+// Execute code using backend AST interpreter
 async function executeCode(code) {
-    const lines = code.split('\n').filter(line => line.trim());
+    const token = localStorage.getItem('access_token');
     
-    for (const line of lines) {
-        const match = line.match(/bbot\.(\w+)\(\)/);
-        if (match) {
-            const action = match[1];
-            if (bbot[action]) {
-                bbot[action]();
-                await new Promise(resolve => setTimeout(resolve, 500));
-            } else {
-                addConsoleOutput(`Unknown action: ${action}`);
-            }
+    try {
+        const response = await fetch('/api/simulation/execute', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                script: code,
+                grid: grid,
+                bot: bot,
+                resources: resources
+            })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            addConsoleOutput(`Error: ${errorData.error}`);
+            return;
         }
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            addConsoleOutput(`Validation error: ${data.error}`);
+            return;
+        }
+        
+        // Process command queue sequentially with animations
+        await processCommandQueue(data.commands);
+        
+        // Update final state
+        grid = data.final_state.grid;
+        resources = data.final_state.resources;
+        population = data.final_state.population;
+        bot = data.final_state.bot;
+        
+        renderGrid();
+        updateResourceDisplay();
+        addConsoleOutput('Script execution completed!');
+        
+    } catch (err) {
+        addConsoleOutput(`Network error: ${err.message}`);
     }
 }
+
+// Process command queue with sequential animations
+async function processCommandQueue(commands) {
+    const directions = ['UP', 'RIGHT', 'DOWN', 'LEFT'];
+    
+    for (const cmd of commands) {
+        if (cmd.error) {
+            addConsoleOutput(`Error: ${cmd.error}`);
+            continue;
+        }
+        
+        switch (cmd.action) {
+            case 'MOVE':
+                bot.x = cmd.target_x;
+                bot.y = cmd.target_y;
+                addConsoleOutput(`Moved to (${bot.x}, ${bot.y})`);
+                updateBotPosition();
+                break;
+            
+            case 'TURN_LEFT':
+                const leftIdx = directions.indexOf(bot.direction);
+                bot.direction = directions[(leftIdx - 1 + 4) % 4];
+                addConsoleOutput(`Turned left to face ${bot.direction}`);
+                break;
+            
+            case 'TURN_RIGHT':
+                const rightIdx = directions.indexOf(bot.direction);
+                bot.direction = directions[(rightIdx + 1) % 4];
+                addConsoleOutput(`Turned right to face ${bot.direction}`);
+                break;
+            
+            case 'HARVEST':
+                if (cmd.resource_gained) {
+                    addConsoleOutput(`Harvested ${cmd.resource_gained}. Amount: ${cmd.amount}`);
+                }
+                if (cmd.resources) {
+                    resources = cmd.resources;
+                }
+                renderGrid();
+                break;
+            
+            case 'BUILD':
+                if (cmd.error) {
+                    addConsoleOutput(`Build failed: ${cmd.error}`);
+                } else {
+                    addConsoleOutput(`Built ${cmd.type} at (${cmd.x}, ${cmd.y}). Population: ${cmd.population}`);
+                }
+                if (cmd.resources) {
+                    resources = cmd.resources;
+                }
+                renderGrid();
+                break;
+        }
+        
+        updateResourceDisplay();
+        
+        // Wait for animation to complete before processing next command
+        await new Promise(resolve => setTimeout(resolve, 400));
+    }
+}
+
+// Initialize on DOM load
+document.addEventListener('DOMContentLoaded', async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        window.location.href = '/login';
+        return;
+    }
+    
+    document.getElementById('codeEditor').value = DEFAULT_CODE;
+    
+    // Fetch initial state from backend
+    try {
+        const response = await fetch('/api/simulation/state');
+        if (response.ok) {
+            const data = await response.json();
+            grid = data.grid;
+            bot = data.bot;
+            population = data.population;
+            resources = data.resources;
+        } else {
+            initializeDemoGrid();
+        }
+    } catch (err) {
+        initializeDemoGrid();
+    }
+    
+    // Initialize PixiJS
+    await initPixiJS();
+    updateResourceDisplay();
+    loadSavedState();
+});
 
 // Event listeners
 document.getElementById('runBtn').addEventListener('click', async () => {
@@ -229,6 +405,8 @@ document.getElementById('resetBtn').addEventListener('click', () => {
     clearConsole();
     initializeDemoGrid();
     renderGrid();
+    updateBotPosition();
+    updateResourceDisplay();
 });
 
 document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -248,9 +426,14 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
             },
             body: JSON.stringify({
                 grid_json: grid,
-                wood_count: bot.inventory.wood,
-                stone_count: bot.inventory.stone,
-                population_count: population
+                wood_count: resources.wood,
+                stone_count: resources.stone,
+                metal_count: resources.metal,
+                energy_count: resources.energy,
+                population_count: population,
+                bot_x: bot.x,
+                bot_y: bot.y,
+                bot_direction: bot.direction
             })
         });
         
@@ -280,10 +463,17 @@ async function loadSavedState() {
         if (response.ok) {
             const data = await response.json();
             grid = data.grid_json;
-            bot.inventory.wood = data.wood_count;
-            bot.inventory.stone = data.stone_count;
+            resources.wood = data.wood_count;
+            resources.stone = data.stone_count;
+            resources.metal = data.metal_count || 0;
+            resources.energy = data.energy_count || 0;
             population = data.population_count;
+            bot.x = data.bot_x || 0;
+            bot.y = data.bot_y || 0;
+            bot.direction = data.bot_direction || 'RIGHT';
             renderGrid();
+            updateBotPosition();
+            updateResourceDisplay();
             addConsoleOutput('Game loaded successfully!');
         } else {
             addConsoleOutput('No saved state found');
