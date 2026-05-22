@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block head %}
+<script src="https://pixijs.download/v8.2.5/pixi.min.js"></script>
+{% endblock %}
+
 {% block content %}
 <script src="https://unpkg.com/lucide@latest"></script>
 <div class="h-screen flex flex-col bg-gray-100">
@@ -53,6 +57,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://pixijs.download/v8.2.5/pixi.min.js"></script>
 <script type="module" src="/static/js/game/main.js"></script>
 {% endblock %}
