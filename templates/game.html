@@ -7,8 +7,12 @@
 
 {% block content %}
 <script src="https://unpkg.com/lucide@latest"></script>
-<div class="h-screen flex flex-col bg-gray-100">
-    <div class="bg-gray-800 text-white p-4">
+<div class="h-screen w-screen relative overflow-hidden">
+    <!-- Full screen Three.js container -->
+    <div id="pixiContainer" class="absolute inset-0"></div>
+    
+    <!-- Top bar with resources and controls -->
+    <div class="absolute top-0 left-0 right-0 bg-gray-800/90 backdrop-blur text-white p-4 z-10">
         <div class="flex justify-between items-center">
             <h1 class="text-xl font-bold">B-Bot</h1>
             <div class="flex gap-4 text-sm items-center">
@@ -18,40 +22,42 @@
                 <span class="flex items-center gap-1"><i data-lucide="zap" class="w-4 h-4"></i> Energy: <span id="energyCount">0</span></span>
                 <span class="flex items-center gap-1"><i data-lucide="users" class="w-4 h-4"></i> Population: <span id="populationCount">0</span></span>
             </div>
-            <button id="logoutBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
-                Logout
-            </button>
+            <div class="flex gap-2">
+                <button id="toggleEditorBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center gap-2">
+                    <i data-lucide="code" class="w-4 h-4"></i> Editor
+                </button>
+                <button id="logoutBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                    Logout
+                </button>
+            </div>
         </div>
     </div>
     
-    <div class="flex-1 flex overflow-hidden">
-        <div class="w-1/2 flex flex-col border-r border-gray-300">
+    <!-- Code editor popup -->
+    <div id="editorPopup" class="hidden absolute top-16 right-4 w-96 h-96 bg-white rounded-lg shadow-2xl z-20 flex flex-col">
+        <div class="flex-1 flex flex-col">
             <div class="flex-1">
-                <textarea id="codeEditor" class="w-full h-full p-4 font-mono text-sm resize-none focus:outline-none" placeholder="Enter your B-Bot code here..."></textarea>
+                <textarea id="codeEditor" class="w-full h-full p-4 font-mono text-sm resize-none focus:outline-none rounded-t-lg" placeholder="Enter your B-Bot code here..."></textarea>
             </div>
             
-            <div class="h-48 bg-gray-900 text-green-400 p-4 overflow-y-auto font-mono text-sm" id="console">
+            <div class="h-32 bg-gray-900 text-green-400 p-4 overflow-y-auto font-mono text-sm" id="console">
                 <div>Console output will appear here...</div>
             </div>
             
-            <div class="p-4 bg-gray-800 border-t border-gray-700 flex gap-4">
-                <button id="runBtn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded">
-                    Run Code
+            <div class="p-4 bg-gray-800 border-t border-gray-700 flex gap-2 rounded-b-lg">
+                <button id="runBtn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded text-sm">
+                    Run
                 </button>
-                <button id="resetBtn" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded">
+                <button id="resetBtn" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-sm">
                     Reset
                 </button>
-                <button id="saveBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded">
+                <button id="saveBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm">
                     Save
                 </button>
-                <button id="loadBtn" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded">
+                <button id="loadBtn" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded text-sm">
                     Load
                 </button>
             </div>
-        </div>
-        
-        <div class="w-1/2 p-4 bg-white flex items-center justify-center">
-            <div id="pixiContainer" class="border-2 border-gray-300"></div>
         </div>
     </div>
 </div>

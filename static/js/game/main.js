@@ -110,6 +110,13 @@ async function initGame() {
 }
 
 function setupEventListeners() {
+    // Toggle editor popup
+    document.getElementById('toggleEditorBtn').addEventListener('click', () => {
+        const popup = document.getElementById('editorPopup');
+        popup.classList.toggle('hidden');
+        lucide.createIcons();
+    });
+    
     document.getElementById('runBtn').addEventListener('click', async () => {
         if (isRunning) return;
         isRunning = true;

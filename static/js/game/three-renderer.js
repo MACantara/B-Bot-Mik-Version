@@ -10,6 +10,10 @@ export function initThreeJS(containerId, width, height) {
     const container = document.getElementById(containerId);
     if (!container) return null;
     
+    // Use window dimensions for full screen
+    const actualWidth = window.innerWidth;
+    const actualHeight = window.innerHeight;
+    
     // Create scene
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf0f0f0);
@@ -17,7 +21,7 @@ export function initThreeJS(containerId, width, height) {
     // Create camera (perspective)
     camera = new THREE.PerspectiveCamera(
         60, // FOV
-        width / height, // aspect ratio
+        actualWidth / actualHeight, // aspect ratio
         0.1, // near
         1000 // far
     );
@@ -28,7 +32,7 @@ export function initThreeJS(containerId, width, height) {
     
     // Create renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(width, height);
+    renderer.setSize(actualWidth, actualHeight);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
