@@ -19,7 +19,12 @@ CREATE TABLE IF NOT EXISTS save_states (
     grid_json JSONB NOT NULL,
     wood_count INTEGER DEFAULT 0,
     stone_count INTEGER DEFAULT 0,
+    metal_count INTEGER DEFAULT 0,
+    energy_count INTEGER DEFAULT 0,
     population_count INTEGER DEFAULT 0,
+    bot_x INTEGER DEFAULT 0,
+    bot_y INTEGER DEFAULT 0,
+    bot_direction TEXT DEFAULT 'RIGHT',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
