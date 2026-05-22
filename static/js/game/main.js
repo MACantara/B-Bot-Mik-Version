@@ -11,10 +11,10 @@ import { initIcons } from '../shared/icons.js';
 
 const DEFAULT_CODE = `bot.move()
 bot.move()
-bot.turn()
+bot.turn_left()
 bot.move()
 bot.harvest()
-bot.turn()
+bot.turn_right()
 bot.move()
 bot.build("residential")`;
 
