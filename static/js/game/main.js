@@ -1,6 +1,6 @@
 // Main entry point for game initialization
 
-import { initPixiJS } from './pixi-renderer.js';
+import { initThreeJS } from './three-renderer.js';
 import { renderGrid } from './grid.js';
 import { createBotSprite, getBotState, setBotDirection } from './bot.js';
 import { processCommandQueue, executeCode } from './commands.js';
@@ -31,14 +31,22 @@ let isRunning = false;
 
 function initializeDemoGrid() {
     grid = [];
+    const treePositions = [[2, 3], [5, 7], [8, 2], [1, 8], [6, 4], [12, 15], [15, 5], [18, 12], [3, 17], [10, 10]];
+    const rockPositions = [[3, 1], [7, 5], [4, 8], [9, 3], [2, 6], [14, 11], [16, 8], [11, 14], [5, 18], [13, 2]];
+    const roadPositions = [[4, 4], [5, 4], [6, 4], [7, 4], [8, 4]];
+    
     for (let y = 0; y < GRID_SIZE; y++) {
         const row = [];
         for (let x = 0; x < GRID_SIZE; x++) {
-            if ((x, y) in [(2, 3), (5, 7), (8, 2), (1, 8), (6, 4), (12, 15), (15, 5), (18, 12), (3, 17), (10, 10)]) {
+            const isTree = treePositions.some(pos => pos[0] === x && pos[1] === y);
+            const isRock = rockPositions.some(pos => pos[0] === x && pos[1] === y);
+            const isRoad = roadPositions.some(pos => pos[0] === x && pos[1] === y);
+            
+            if (isTree) {
                 row.push({ type: 'TREE', id: `${x}-${y}` });
-            } else if ((x, y) in [(3, 1), (7, 5), (4, 8), (9, 3), (2, 6), (14, 11), (16, 8), (11, 14), (5, 18), (13, 2)]) {
+            } else if (isRock) {
                 row.push({ type: 'ROCK', id: `${x}-${y}` });
-            } else if ((x, y) in [(4, 4), (5, 4), (6, 4), (7, 4), (8, 4)]) {
+            } else if (isRoad) {
                 row.push({ type: 'ROAD', id: `${x}-${y}` });
             } else {
                 row.push({ type: 'EMPTY', id: `${x}-${y}` });
@@ -79,8 +87,8 @@ async function initGame() {
         initializeDemoGrid();
     }
     
-    // Initialize PixiJS
-    initPixiJS('pixiContainer', GRID_WIDTH, GRID_HEIGHT);
+    // Initialize Three.js
+    initThreeJS('pixiContainer', GRID_WIDTH, GRID_HEIGHT);
     renderGrid(grid, CELL_SIZE);
     createBotSprite(bot.x, bot.y, CELL_SIZE);
     setBotDirection(bot.direction);

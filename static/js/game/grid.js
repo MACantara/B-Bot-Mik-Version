@@ -1,6 +1,6 @@
 // Grid rendering and tile management
 
-import { getGridContainer } from './pixi-renderer.js';
+import { getGridContainer } from './three-renderer.js';
 
 const TILE_COLORS = {
     EMPTY: 0xf0f0f0,
@@ -12,12 +12,14 @@ const TILE_COLORS = {
     INDUSTRIAL: 0xB22222
 };
 
-const ICON_SVGS = {
-    TREE: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 22 4-10a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2l4 10"/><path d="M12 2v20"/><path d="M12 2a7 7 0 0 1 7 7c0 5-2 8-7 12-5-4-7-7-7-12a7 7 0 0 1 7-7z"/></svg>`,
-    ROCK: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg>`,
-    RESIDENTIAL: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
-    COMMERCIAL: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>`,
-    INDUSTRIAL: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/></svg>`
+const TILE_HEIGHTS = {
+    EMPTY: 0.1,
+    TREE: 1.5,
+    ROCK: 0.8,
+    ROAD: 0.1,
+    RESIDENTIAL: 2,
+    COMMERCIAL: 4,
+    INDUSTRIAL: 3
 };
 
 export function renderGrid(grid, cellSize) {
@@ -25,39 +27,71 @@ export function renderGrid(grid, cellSize) {
     if (!container) return;
     
     // Clear existing grid
-    container.removeChildren();
+    while (container.children.length > 0) {
+        const child = container.children[0];
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+            if (Array.isArray(child.material)) {
+                child.material.forEach(m => m.dispose());
+            } else {
+                child.material.dispose();
+            }
+        }
+        container.remove(child);
+    }
     
     const gridSize = grid.length;
+    const offset = (gridSize * cellSize) / 2;
     
     // Draw grid cells
     for (let y = 0; y < gridSize; y++) {
         for (let x = 0; x < gridSize; x++) {
             const cellData = grid[y] && grid[y][x] ? grid[y][x] : { type: 'EMPTY', id: `${x}-${y}` };
             
-            const graphics = new PIXI.Graphics();
             const color = TILE_COLORS[cellData.type] || TILE_COLORS.EMPTY;
+            const height = TILE_HEIGHTS[cellData.type] || 0.1;
             
-            graphics.beginFill(color);
-            graphics.drawRect(x * cellSize, y * cellSize, cellSize, cellSize);
-            graphics.endFill();
+            // Create 3D tile geometry
+            let geometry;
+            let material;
             
-            // Add grid border
-            graphics.lineStyle(1, 0xcccccc);
-            graphics.drawRect(x * cellSize, y * cellSize, cellSize, cellSize);
-            
-            container.addChild(graphics);
-            
-            // Add SVG icons for different tile types
-            if (ICON_SVGS[cellData.type]) {
-                const svgString = ICON_SVGS[cellData.type];
-                const svgTexture = PIXI.Texture.from(svgString);
-                const iconSprite = new PIXI.Sprite(svgTexture);
-                iconSprite.x = x * cellSize + 7;
-                iconSprite.y = y * cellSize + 7;
-                iconSprite.width = 16;
-                iconSprite.height = 16;
-                iconSprite.tint = 0x333333;
-                container.addChild(iconSprite);
+            if (cellData.type === 'TREE') {
+                // Tree: cylinder trunk + cone foliage
+                const trunkGeometry = new THREE.CylinderGeometry(0.1, 0.15, 0.5, 8);
+                const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                trunk.position.set(x * cellSize - offset, 0.25, y * cellSize - offset);
+                trunk.castShadow = true;
+                container.add(trunk);
+                
+                const foliageGeometry = new THREE.ConeGeometry(0.6, 1.2, 8);
+                const foliageMaterial = new THREE.MeshStandardMaterial({ color: color });
+                const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
+                foliage.position.set(x * cellSize - offset, 1.1, y * cellSize - offset);
+                foliage.castShadow = true;
+                container.add(foliage);
+                
+            } else if (cellData.type === 'ROCK') {
+                // Rock: irregular dodecahedron
+                geometry = new THREE.DodecahedronGeometry(0.4);
+                material = new THREE.MeshStandardMaterial({ color: color, roughness: 0.9 });
+                const rock = new THREE.Mesh(geometry, material);
+                rock.position.set(x * cellSize - offset, 0.4, y * cellSize - offset);
+                rock.castShadow = true;
+                container.add(rock);
+                
+            } else {
+                // Standard tiles: box geometry
+                geometry = new THREE.BoxGeometry(cellSize - 0.1, height, cellSize - 0.1);
+                material = new THREE.MeshStandardMaterial({ 
+                    color: color,
+                    roughness: 0.7
+                });
+                const tile = new THREE.Mesh(geometry, material);
+                tile.position.set(x * cellSize - offset, height / 2, y * cellSize - offset);
+                tile.castShadow = true;
+                tile.receiveShadow = true;
+                container.add(tile);
             }
         }
     }

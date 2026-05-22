@@ -1,53 +1,100 @@
 // Bot sprite, movement, and animation
 
-import { getGridContainer } from './pixi-renderer.js';
+import { getGridContainer } from './three-renderer.js';
 
-let botSprite;
+let botGroup;
 let botState = { x: 0, y: 0, direction: 'RIGHT' };
-
-const ICON_SVGS = {
-    BOT: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M8.5 2h7"/><path d="M12 2v6"/><path d="M19 10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"/><path d="M8 10v4"/><path d="M16 10v4"/><path d="M12 14v4"/></svg>`
-};
 
 export function createBotSprite(x, y, cellSize) {
     const container = getGridContainer();
     if (!container) return;
     
-    const svgString = ICON_SVGS.BOT;
-    const svgTexture = PIXI.Texture.from(svgString);
-    botSprite = new PIXI.Sprite(svgTexture);
-    botSprite.x = x * cellSize + 5;
-    botSprite.y = y * cellSize + 5;
-    botSprite.width = 20;
-    botSprite.height = 20;
-    botSprite.tint = 0x000000;
-    container.addChild(botSprite);
+    // Create bot group
+    botGroup = new THREE.Group();
+    
+    const gridSize = 20; // Assuming 20x20 grid
+    const offset = (gridSize * cellSize) / 2;
+    
+    // Bot body (cube)
+    const bodyGeometry = new THREE.BoxGeometry(0.6, 0.5, 0.4);
+    const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    body.position.y = 0.5;
+    body.castShadow = true;
+    botGroup.add(body);
+    
+    // Bot head (cube)
+    const headGeometry = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+    const headMaterial = new THREE.MeshStandardMaterial({ color: 0x555555 });
+    const head = new THREE.Mesh(headGeometry, headMaterial);
+    head.position.y = 0.95;
+    head.castShadow = true;
+    botGroup.add(head);
+    
+    // Bot eyes (small spheres)
+    const eyeGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+    const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00, emissive: 0x00ff00, emissiveIntensity: 0.5 });
+    
+    const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+    leftEye.position.set(-0.1, 1.0, 0.2);
+    botGroup.add(leftEye);
+    
+    const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+    rightEye.position.set(0.1, 1.0, 0.2);
+    botGroup.add(rightEye);
+    
+    // Bot arms (cylinders)
+    const armGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.4, 8);
+    const armMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
+    
+    const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+    leftArm.position.set(-0.4, 0.5, 0);
+    leftArm.rotation.z = Math.PI / 4;
+    leftArm.castShadow = true;
+    botGroup.add(leftArm);
+    
+    const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+    rightArm.position.set(0.4, 0.5, 0);
+    rightArm.rotation.z = -Math.PI / 4;
+    rightArm.castShadow = true;
+    botGroup.add(rightArm);
+    
+    // Position bot on grid
+    botGroup.position.set(x * cellSize - offset, 0, y * cellSize - offset);
+    
+    container.add(botGroup);
     
     botState = { x, y, direction: 'RIGHT' };
 }
 
 export function updateBotPosition(targetX, targetY, cellSize) {
-    if (!botSprite) return;
+    if (!botGroup) return;
     
     botState.x = targetX;
     botState.y = targetY;
     
-    const pixelX = targetX * cellSize + 5;
-    const pixelY = targetY * cellSize + 5;
+    const gridSize = 20;
+    const offset = (gridSize * cellSize) / 2;
+    
+    const targetPosition = new THREE.Vector3(
+        targetX * cellSize - offset,
+        0,
+        targetY * cellSize - offset
+    );
     
     // Smooth lerp animation
     const animate = () => {
-        const dx = pixelX - botSprite.x;
-        const dy = pixelY - botSprite.y;
+        const dx = targetPosition.x - botGroup.position.x;
+        const dz = targetPosition.z - botGroup.position.z;
         
-        if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
-            botSprite.x = pixelX;
-            botSprite.y = pixelY;
+        if (Math.abs(dx) < 0.05 && Math.abs(dz) < 0.05) {
+            botGroup.position.x = targetPosition.x;
+            botGroup.position.z = targetPosition.z;
             return;
         }
         
-        botSprite.x += dx * 0.2;
-        botSprite.y += dy * 0.2;
+        botGroup.position.x += dx * 0.15;
+        botGroup.position.z += dz * 0.15;
         requestAnimationFrame(animate);
     };
     
@@ -60,4 +107,17 @@ export function getBotState() {
 
 export function setBotDirection(direction) {
     botState.direction = direction;
+    
+    if (!botGroup) return;
+    
+    // Rotate bot to face direction
+    const rotations = {
+        'UP': Math.PI,
+        'RIGHT': -Math.PI / 2,
+        'DOWN': 0,
+        'LEFT': Math.PI / 2
+    };
+    
+    botGroup.rotation.y = rotations[direction] || 0;
 }
+
