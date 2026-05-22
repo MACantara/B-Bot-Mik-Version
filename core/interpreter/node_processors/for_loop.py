@@ -56,6 +56,16 @@ class ForLoopProcessor(NodeProcessor):
             if loop_var:
                 new_scope[loop_var] = i
             
+            # Reset loop control signal
+            generator.loop_control = None
+            
             # Process each statement in the loop body
             for body_node in for_node.body:
                 generator._process_node(body_node, new_scope)
+                
+                # Check for break/continue
+                if generator.loop_control == 'break':
+                    break
+                elif generator.loop_control == 'continue':
+                    generator.loop_control = None
+                    break
