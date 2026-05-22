@@ -26,3 +26,36 @@ FORBIDDEN_FUNCTIONS = {
 
 # Maximum loop iterations to prevent infinite loops
 MAX_ITERATIONS = 500
+
+# Supported comparison operators
+COMPARISON_OPERATORS = {
+    'Eq',      # ==
+    'NotEq',   # !=
+    'Lt',      # <
+    'LtE',     # <=
+    'Gt',      # >
+    'GtE'      # >=
+}
+
+# Supported arithmetic operators
+ARITHMETIC_OPERATORS = {
+    'Add',     # +
+    'Sub',     # -
+    'Mult',    # *
+    'Div',     # / (integer division)
+    'Mod'      # %
+}
+
+# Supported logical operators
+LOGICAL_OPERATORS = {
+    'And',     # and
+    'Or',      # or
+    'Not'      # not
+}
+
+# Supported data types
+SUPPORTED_TYPES = {
+    'int',     # Integers
+    'bool',    # Booleans
+    'list'     # Lists
+}
