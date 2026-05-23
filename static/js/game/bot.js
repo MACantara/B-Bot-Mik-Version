@@ -106,12 +106,12 @@ export function setBotDirection(direction) {
     
     if (!botGroup) return;
     
-    // Rotate bot to face direction
+    // Rotate bot to face direction (adjusted for eyes at back of head)
     const rotations = {
-        'UP': Math.PI,
-        'RIGHT': -Math.PI / 2,
-        'DOWN': 0,
-        'LEFT': Math.PI / 2
+        'UP': 0,
+        'RIGHT': Math.PI / 2,
+        'DOWN': Math.PI,
+        'LEFT': -Math.PI / 2
     };
     
     botGroup.rotation.y = rotations[direction] || 0;
