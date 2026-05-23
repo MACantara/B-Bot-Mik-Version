@@ -128,12 +128,7 @@ function setupEventListeners() {
         const data = await executeCode(code, grid, bot, getResources());
         
         if (data) {
-            await processCommandQueue(data.commands, CELL_SIZE);
-            
-            grid = data.final_state.grid;
-            setResources(data.final_state.resources);
-            setPopulation(data.final_state.population);
-            bot = data.final_state.bot;
+            await processCommandQueue(data.commands, CELL_SIZE, grid);
             
             renderGrid(grid, CELL_SIZE);
             createBotSprite(bot.x, bot.y, CELL_SIZE);
