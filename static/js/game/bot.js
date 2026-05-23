@@ -86,35 +86,15 @@ export function createBotSprite(x, y, cellSize) {
 export function updateBotPosition(targetX, targetY, cellSize) {
     if (!botGroup) return;
     
-    botState.x = targetX;
-    botState.y = targetY;
-    
     const gridSize = 20;
     const offset = (gridSize * cellSize) / 2;
     
-    const targetPosition = new THREE.Vector3(
+    // Direct position update (no animation - let AnimationEngine handle that)
+    botGroup.position.set(
         targetX * cellSize - offset,
         0,
         targetY * cellSize - offset
     );
-    
-    // Smooth lerp animation
-    const animate = () => {
-        const dx = targetPosition.x - botGroup.position.x;
-        const dz = targetPosition.z - botGroup.position.z;
-        
-        if (Math.abs(dx) < 0.05 && Math.abs(dz) < 0.05) {
-            botGroup.position.x = targetPosition.x;
-            botGroup.position.z = targetPosition.z;
-            return;
-        }
-        
-        botGroup.position.x += dx * 0.15;
-        botGroup.position.z += dz * 0.15;
-        requestAnimationFrame(animate);
-    };
-    
-    animate();
 }
 
 export function getBotState() {

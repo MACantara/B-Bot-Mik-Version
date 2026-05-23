@@ -92,13 +92,13 @@ class AnimationEngine {
                 const currentX = this.lerp(startPos.x, targetPos.x, progress);
                 const currentY = this.lerp(startPos.y, targetPos.y, progress);
                 
-                // Update bot position (for visual feedback)
-                updateBotPosition(currentX, currentY);
+                // Update visual position only (not botState)
+                updateBotPosition(currentX, currentY, 1.5);
                 
                 if (progress < 1) {
                     requestAnimationFrame(animate);
                 } else {
-                    // Animation complete - update actual bot state
+                    // Animation complete - update actual bot state with integer coordinates
                     botState.x = targetPos.x;
                     botState.y = targetPos.y;
                     addConsoleOutput(`Moved to (${botState.x}, ${botState.y})`);
