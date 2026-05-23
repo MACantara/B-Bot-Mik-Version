@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify
 from core.database import supabase
 from core.security import decode_token
-from core.interpreter import ScriptInterpreter, ScriptValidationError, simulate_execution
 from functools import wraps
 
 simulation_bp = Blueprint('simulation', __name__)
@@ -103,52 +102,3 @@ def get_saved_state():
     if not response.data:
         return jsonify({'error': 'No save state found for this user'}), 404
     return jsonify(response.data[0])
-
-
-@simulation_bp.route('/execute', methods=['POST'])
-@token_required
-def execute_script():
-    """
-    Execute a user-submitted script using the AST-based interpreter.
-    Returns a command queue for frontend animation and the final game state.
-    """
-    data = request.get_json()
-    script = data.get('script', '')
-    initial_grid = data.get('grid', [])
-    initial_bot = data.get('bot', {'x': 0, 'y': 0, 'direction': 'RIGHT'})
-    # Ensure bot has inventory
-    if 'inventory' not in initial_bot:
-        initial_bot['inventory'] = {'wood': 0, 'stone': 0, 'metal': 0, 'energy': 0}
-    initial_resources = data.get('resources', {'wood': 0, 'stone': 0, 'metal': 0, 'energy': 0})
-    
-    if not script:
-        return jsonify({'error': 'Script is required'}), 400
-    
-    try:
-        # Parse and validate the script using AST interpreter
-        interpreter = ScriptInterpreter()
-        command_queue = interpreter.parse_and_validate(script)
-        
-        # Simulate execution to generate detailed command queue
-        detailed_queue, final_grid, final_resources, final_population, final_bot = simulate_execution(
-            command_queue,
-            initial_grid,
-            initial_bot,
-            initial_resources
-        )
-        
-        return jsonify({
-            'success': True,
-            'commands': detailed_queue,
-            'final_state': {
-                'grid': final_grid,
-                'bot': final_bot,
-                'resources': final_resources,
-                'population': final_population
-            }
-        })
-    
-    except ScriptValidationError as e:
-        return jsonify({'success': False, 'error': str(e)}), 400
-    except Exception as e:
-        return jsonify({'success': False, 'error': f'Execution error: {str(e)}'}), 500
