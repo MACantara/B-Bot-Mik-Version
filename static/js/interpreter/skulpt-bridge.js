@@ -32,51 +32,58 @@ export function executeScript(script) {
         
         Sk.configure({ output: outf, read: builtinRead });
         
-        // Create bot object for this execution
-        const bot = {
-            move: new Sk.builtin.func(() => {
-                commandQueue.push({ action: 'MOVE' });
-                return Sk.builtin.none.none$;
-            }),
-            turn_left: new Sk.builtin.func(() => {
-                commandQueue.push({ action: 'TURN_LEFT' });
-                return Sk.builtin.none.none$;
-            }),
-            turn_right: new Sk.builtin.func(() => {
-                commandQueue.push({ action: 'TURN_RIGHT' });
-                return Sk.builtin.none.none$;
-            }),
-            harvest: new Sk.builtin.func(() => {
-                commandQueue.push({ action: 'HARVEST' });
-                return Sk.builtin.none.none$;
-            }),
-            build: new Sk.builtin.func((buildType) => {
-                const type = Sk.ffi.remapToJs(buildType);
-                commandQueue.push({ action: 'BUILD', type: type });
-                return Sk.builtin.none.none$;
-            })
-        };
+        // Inject individual bot methods as standalone functions into Sk.builtins
+        Sk.builtins.bot_move = new Sk.builtin.func(() => {
+            commandQueue.push({ action: 'MOVE' });
+            return Sk.builtin.none.none$;
+        });
+        
+        Sk.builtins.bot_turn_left = new Sk.builtin.func(() => {
+            commandQueue.push({ action: 'TURN_LEFT' });
+            return Sk.builtin.none.none$;
+        });
+        
+        Sk.builtins.bot_turn_right = new Sk.builtin.func(() => {
+            commandQueue.push({ action: 'TURN_RIGHT' });
+            return Sk.builtin.none.none$;
+        });
+        
+        Sk.builtins.bot_harvest = new Sk.builtin.func(() => {
+            commandQueue.push({ action: 'HARVEST' });
+            return Sk.builtin.none.none$;
+        });
+        
+        Sk.builtins.bot_build = new Sk.builtin.func((buildType) => {
+            const type = Sk.ffi.remapToJs(buildType);
+            commandQueue.push({ action: 'BUILD', type: type });
+            return Sk.builtin.none.none$;
+        });
         
         // Reset command queue for new execution
         commandQueue = [];
-
-        // Inject bot object into Skulpt's global scope
-        Sk.builtins.bot = bot;
 
         // Execute the script using Skulpt's asyncToPromise
         Sk.misceval.asyncToPromise(() => {
             return Sk.importMainWithBody('<stdin>', false, script, true);
         })
         .then(() => {
-            // Clean up bot from builtins after execution
-            delete Sk.builtins.bot;
+            // Clean up bot functions from builtins after execution
+            delete Sk.builtins.bot_move;
+            delete Sk.builtins.bot_turn_left;
+            delete Sk.builtins.bot_turn_right;
+            delete Sk.builtins.bot_harvest;
+            delete Sk.builtins.bot_build;
             
             // Script executed successfully, return command queue
             resolve(commandQueue);
         })
         .catch(err => {
-            // Clean up bot from builtins on error
-            delete Sk.builtins.bot;
+            // Clean up bot functions from builtins on error
+            delete Sk.builtins.bot_move;
+            delete Sk.builtins.bot_turn_left;
+            delete Sk.builtins.bot_turn_right;
+            delete Sk.builtins.bot_harvest;
+            delete Sk.builtins.bot_build;
             
             // Script execution failed
             reject(new Error(`Script execution error: ${err.toString()}`));

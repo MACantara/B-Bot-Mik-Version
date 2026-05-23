@@ -11,14 +11,14 @@ import { initIcons } from '../shared/icons.js';
 
 const DEFAULT_CODE = `moves = 5
 for i in range(moves):
-    bot.move()
-bot.turn_left()
-bot.move()
-bot.harvest()
-bot.turn_right()
-bot.move()
-bot.harvest()
-bot.build("residential")`;
+    bot_move()
+bot_turn_left()
+bot_move()
+bot_harvest()
+bot_turn_right()
+bot_move()
+bot_harvest()
+bot_build("residential")`;
 
 // Grid configuration
 const GRID_SIZE = 20;
