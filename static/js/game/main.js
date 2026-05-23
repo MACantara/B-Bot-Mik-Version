@@ -2,7 +2,7 @@
 
 import { initThreeJS } from './three-renderer.js';
 import { renderGrid } from './grid.js';
-import { createBotSprite, getBotState, setBotDirection } from './bot.js';
+import { createBotSprite, getBotState, setBotDirection, updateBotPosition } from './bot.js';
 import { processCommandQueue, executeCode } from './commands.js';
 import { setResources, setPopulation, getResources, getPopulation } from './resources.js';
 import { addConsoleOutput, clearConsole } from './console.js';
@@ -131,8 +131,10 @@ function setupEventListeners() {
             await processCommandQueue(data.commands, CELL_SIZE, grid);
             
             renderGrid(grid, CELL_SIZE);
-            // Bot is already at correct position from animation, just ensure direction is set
-            setBotDirection(bot.direction);
+            // Recreate bot sprite after renderGrid clears all children
+            const botState = getBotState();
+            createBotSprite(botState.x, botState.y, CELL_SIZE);
+            setBotDirection(botState.direction);
             addConsoleOutput('Script execution completed!');
         }
         
