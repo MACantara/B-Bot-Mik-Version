@@ -60,15 +60,24 @@ export function executeScript(script) {
         // Reset command queue for new execution
         commandQueue = [];
 
-        // Execute the script using Skulpt's asyncToPromise with bot in globals
+        // Inject bot object into Skulpt's global scope
+        Sk.builtins.bot = bot;
+
+        // Execute the script using Skulpt's asyncToPromise
         Sk.misceval.asyncToPromise(() => {
-            return Sk.importMainWithBody('<stdin>', false, script, true, bot);
+            return Sk.importMainWithBody('<stdin>', false, script, true);
         })
         .then(() => {
+            // Clean up bot from builtins after execution
+            delete Sk.builtins.bot;
+            
             // Script executed successfully, return command queue
             resolve(commandQueue);
         })
         .catch(err => {
+            // Clean up bot from builtins on error
+            delete Sk.builtins.bot;
+            
             // Script execution failed
             reject(new Error(`Script execution error: ${err.toString()}`));
         });
