@@ -52,11 +52,11 @@ export function createBotSprite(x, y, cellSize) {
     const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00, emissive: 0x00ff00, emissiveIntensity: 0.5 });
     
     const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-    leftEye.position.set(-0.1, 1.0, 0.2);
+    leftEye.position.set(-0.1, 1.0, -0.2);
     botGroup.add(leftEye);
     
     const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-    rightEye.position.set(0.1, 1.0, 0.2);
+    rightEye.position.set(0.1, 1.0, -0.2);
     botGroup.add(rightEye);
     
     // Bot arms (cylinders)
