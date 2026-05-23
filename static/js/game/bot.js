@@ -64,14 +64,14 @@ export function createBotSprite(x, y, cellSize) {
     const armMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
     
     const leftArm = new THREE.Mesh(armGeometry, armMaterial);
-    leftArm.position.set(-0.4, 0.5, 0);
-    leftArm.rotation.z = Math.PI / 4;
+    leftArm.position.set(-0.35, 0.45, 0);
+    leftArm.rotation.z = -Math.PI / 6;
     leftArm.castShadow = true;
     botGroup.add(leftArm);
     
     const rightArm = new THREE.Mesh(armGeometry, armMaterial);
-    rightArm.position.set(0.4, 0.5, 0);
-    rightArm.rotation.z = -Math.PI / 4;
+    rightArm.position.set(0.35, 0.45, 0);
+    rightArm.rotation.z = Math.PI / 6;
     rightArm.castShadow = true;
     botGroup.add(rightArm);
     
