@@ -8,6 +8,12 @@ import { executeScript } from '../interpreter/skulpt-bridge.js';
 import { animationEngine } from './animation.js';
 
 export async function processCommandQueue(commands, cellSize, grid) {
+    // Validate commands is an array
+    if (!Array.isArray(commands)) {
+        console.error('Invalid commands:', commands);
+        return;
+    }
+    
     // Use animation engine for smooth command processing
     await animationEngine.processQueue(commands);
     
