@@ -219,7 +219,7 @@ class AnimationEngine {
     /**
      * Calculate target position based on current direction
      * @param {Object} botState - Current bot state
-     * @returns {Object} Target position {x, y}
+     * @returns {Object} Target position {x, y} (clamped to grid bounds)
      */
     calculateTargetPosition(botState) {
         const directions = {
@@ -230,9 +230,16 @@ class AnimationEngine {
         };
         
         const delta = directions[botState.direction];
+        const targetX = botState.x + delta.x;
+        const targetY = botState.y + delta.y;
+        
+        // Clamp to grid bounds (0-19 for 20x20 grid)
+        const clampedX = Math.max(0, Math.min(19, targetX));
+        const clampedY = Math.max(0, Math.min(19, targetY));
+        
         return {
-            x: botState.x + delta.x,
-            y: botState.y + delta.y
+            x: clampedX,
+            y: clampedY
         };
     }
 
