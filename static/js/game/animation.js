@@ -3,6 +3,7 @@
 
 import { updateBotPosition, setBotDirection, getBotState } from './bot.js';
 import { addConsoleOutput } from './console.js';
+import { updateResources, getResources } from './resources.js';
 
 /**
  * Animation Engine Class
@@ -18,9 +19,10 @@ class AnimationEngine {
     /**
      * Process the command queue with smooth animations
      * @param {Array} commands - Array of command objects
+     * @param {Array} grid - The game grid for harvest/build operations
      * @returns {Promise} Resolves when all animations complete
      */
-    async processQueue(commands) {
+    async processQueue(commands, grid) {
         if (this.isAnimating) {
             console.warn('Animation already in progress');
             return;
@@ -31,7 +33,7 @@ class AnimationEngine {
 
         while (this.queue.length > 0) {
             const command = this.queue.shift();
-            await this.animateCommand(command);
+            await this.animateCommand(command, grid);
         }
 
         this.isAnimating = false;
@@ -40,9 +42,10 @@ class AnimationEngine {
     /**
      * Animate a single command
      * @param {Object} command - Command object with action and parameters
+     * @param {Array} grid - The game grid for harvest/build operations
      * @returns {Promise} Resolves when animation completes
      */
-    async animateCommand(command) {
+    async animateCommand(command, grid) {
         if (command.error) {
             addConsoleOutput(`Error: ${command.error}`);
             return;
@@ -59,10 +62,10 @@ class AnimationEngine {
                 await this.animateTurn('RIGHT');
                 break;
             case 'HARVEST':
-                await this.animateHarvest(command);
+                await this.animateHarvest(command, grid);
                 break;
             case 'BUILD':
-                await this.animateBuild(command);
+                await this.animateBuild(command, grid);
                 break;
             default:
                 console.warn(`Unknown command: ${command.action}`);
@@ -152,9 +155,11 @@ class AnimationEngine {
     /**
      * Animate harvest action
      * @param {Object} command - HARVEST command
+     * @param {Array} grid - The game grid
      * @returns {Promise} Resolves when harvest animation completes
      */
-    async animateHarvest(command) {
+    async animateHarvest(command, grid) {
+        const botState = getBotState();
         const startTime = performance.now();
         
         return new Promise(resolve => {
@@ -163,8 +168,29 @@ class AnimationEngine {
                 const progress = Math.min(elapsed / this.animationDuration, 1);
                 
                 if (progress >= 1) {
-                    if (command.resource_gained) {
-                        addConsoleOutput(`Harvested ${command.resource_gained}. Amount: ${command.amount}`);
+                    // Perform actual harvest logic
+                    const cell = grid[botState.y] && grid[botState.y][botState.x];
+                    if (cell) {
+                        const resourceType = cell.type;
+                        
+                        // Only harvest if there's a resource
+                        if (resourceType === 'TREE' || resourceType === 'ROCK') {
+                            // Remove resource from grid
+                            grid[botState.y][botState.x] = { type: 'EMPTY', id: `${botState.x}-${botState.y}` };
+                            
+                            // Add to resources
+                            const resources = getResources();
+                            if (resourceType === 'TREE') {
+                                resources.wood += 1;
+                            } else if (resourceType === 'ROCK') {
+                                resources.stone += 1;
+                            }
+                            updateResources(resources);
+                            
+                            addConsoleOutput(`Harvested ${resourceType.toLowerCase()}`);
+                        } else {
+                            addConsoleOutput('Nothing to harvest here');
+                        }
                     }
                     resolve();
                 } else {
@@ -179,9 +205,11 @@ class AnimationEngine {
     /**
      * Animate build action
      * @param {Object} command - BUILD command
+     * @param {Array} grid - The game grid
      * @returns {Promise} Resolves when build animation completes
      */
-    async animateBuild(command) {
+    async animateBuild(command, grid) {
+        const botState = getBotState();
         const startTime = performance.now();
         
         return new Promise(resolve => {
@@ -190,10 +218,20 @@ class AnimationEngine {
                 const progress = Math.min(elapsed / this.animationDuration, 1);
                 
                 if (progress >= 1) {
-                    if (command.error) {
-                        addConsoleOutput(`Build failed: ${command.error}`);
-                    } else {
-                        addConsoleOutput(`Built ${command.type} at (${command.x}, ${command.y})`);
+                    // Perform actual build logic
+                    const cell = grid[botState.y] && grid[botState.y][botState.x];
+                    if (cell) {
+                        const buildType = command.type;
+                        
+                        // Only build if cell is empty
+                        if (cell.type === 'EMPTY') {
+                            // Add structure to grid
+                            grid[botState.y][botState.x] = { type: buildType.toUpperCase(), id: `${botState.x}-${botState.y}` };
+                            
+                            addConsoleOutput(`Built ${buildType} at (${botState.x}, ${botState.y})`);
+                        } else {
+                            addConsoleOutput('Cannot build here - cell not empty');
+                        }
                     }
                     resolve();
                 } else {

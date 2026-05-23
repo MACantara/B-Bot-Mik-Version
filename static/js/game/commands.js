@@ -15,7 +15,7 @@ export async function processCommandQueue(commands, cellSize, grid) {
     }
     
     // Use animation engine for smooth command processing
-    await animationEngine.processQueue(commands);
+    await animationEngine.processQueue(commands, grid);
     
     // Update grid after all animations complete
     renderGrid(grid, cellSize);
