@@ -131,7 +131,7 @@ function setupEventListeners() {
             await processCommandQueue(data.commands, CELL_SIZE, grid);
             
             renderGrid(grid, CELL_SIZE);
-            createBotSprite(bot.x, bot.y, CELL_SIZE);
+            // Bot is already at correct position from animation, just ensure direction is set
             setBotDirection(bot.direction);
             addConsoleOutput('Script execution completed!');
         }
